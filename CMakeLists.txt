@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.0.0)
 
 # 保存一些通用的配置
 set(CMAKE_VERBOSE_MAKEFILE on)   # 开启输出编译详细过程的提示
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   #生成编译命令json文件
+set(CMAKE_EXPORT_LINK_COMMANDS ON)   #生成编译命令json文件
 
 # gcc工具链前缀，根据实际情况做不同的设置
 set(TOOL_PREFIX "arm-linux-")
@@ -40,7 +42,7 @@ enable_language(ASM)
 # 头文件搜索路径
 include_directories(
     ${PROJECT_SOURCE_DIR}/src
-    
+    ${PROJECT_SOURCE_DIR}/inc/
 )
 
 # # 底层的若干子项目：含内核及应用程序
@@ -54,6 +56,7 @@ include_directories(
 # add_subdirectory(./source/loop)
 add_subdirectory(./src/test_1)
 add_subdirectory(./src/led_test)
+add_subdirectory(./src/uart_test)
 
 # # 添加编译依赖，先生成app库，再生成kernel和shell
 # # 不加则cmake则可能先编译shell和kernel，而缺少libapp，导致编译错误

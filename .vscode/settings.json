@@ -1,0 +1,8 @@
+{
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.errorSquiggles": "enabled",
+    "files.associations": {
+        "klib.h": "c",
+        "types.h": "c"
+    }
+}
