@@ -3,7 +3,7 @@
 #include "tools/uart.h"
 #include "tools/klib.h"
 
-static int which_uart = 0;
+static int which_uart __attribute__((section(".data"))) = 0; 
 
 /**串口初始化*/
 void uart_init() {
@@ -90,16 +90,16 @@ void uart_send_str(const char *str) {
  * @param ... 
  */
 void uart_printf(char *fmt, ...) {
-    uart_send_str("ooo\n");
     char string[256];
 
+    kernel_memset(string, 0, sizeof(string));
+    
     va_list ap;
     va_start(ap,fmt);
 
-    uart_send_str("ok\n");
     kernel_vsprintf(string,fmt,ap);
-    uart_send_str("end\n");
-    uart_send_str(string);
-    
     va_end(ap);
+
+
+    uart_send_str(string);
 }
