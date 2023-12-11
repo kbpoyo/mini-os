@@ -2,7 +2,7 @@
 #include "tools/uart.h"
 
 
-int main () {
+int kernel_init () {
 
     uart_init();
 
@@ -13,8 +13,8 @@ int main () {
         while (n--) {
             int m = 100;
             // uart_send_str("hello world!\n");
-            uart_printf("str = %s, n = %d\n", str, n);
             while (m--) {
+                uart_printf("str = %s, n = %d, m = %d\n", str, n, m);
             }
             
         }

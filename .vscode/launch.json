@@ -5,57 +5,43 @@
             "name": "(gdb) 启动",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/image/uart_test.elf",
+            "program": "${workspaceRoot}/image/init.elf",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "F:\\software\\work_space\\gcc-arm-none-eabi-10.3-2021.10",
+            "cwd": "${workspaceRoot}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "/mnt/f/software/work_space/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gdb.exe",
+            "miDebuggerPath": "/home/kbpoyo/opt/arm-linux-gdb/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gdb",
             "miDebuggerServerAddress": "192.168.3.5:2331",
             "targetArchitecture": "arm",
+            "customLaunchSetupCommands": [],
             "setupCommands": [
                 {
                     "description": "为 gdb 启用整齐打印",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 },
-                {
-                    "description":  "将反汇编风格设置为 Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
             ],
 
             // gdb连接后的设置
-            "postRemoteConnectCommands": [
-                // {
-                //     "description": "加载符号文件",
-                //     // "text": "add-symbol-file ./image/uart_test.elf 0x30000000",
-                //     "text": "-file-symbol-file ./image/uart_test.elf",
-                //     "ignoreFailures": false
-                // },      
+            "postRemoteConnectCommands": [ 
                 {
                     "text": "load",
                     "description": "download file to MCU",
                     "ignoreFailures": false
                 },
-                {
-                    "text": "monitor reset",
-                    "description": "reset MCU",
-                    "ignoreFailures": false
-                },
-                {
-                    "text": "b main",
-                    "description": "set breakpoints at main",
-                    "ignoreFailures": false
-                },
-                {
-                    "description": "运行至0x30000000",
-                    "text": "-exec-until *0x30000000",
-                    "ignoreFailures": false
-                },
+        
+                // {
+                //     "text": "b main",
+                //     "description": "set breakpoints at main",
+                //     "ignoreFailures": false
+                // },
+                // {
+                //     "description": "运行至0x30000000",
+                //     "text": "-exec-until *0x30000000",
+                //     "ignoreFailures": false
+                // },
             ]
         }
     ]

@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/inc"
+                "${workspaceFolder}/src/inc"
+                "${workspaceFolder}/src/kernel/inc"
             ],
             "defines": [],
             "compilerPath": "/home/kbpoyo/opt/FriendlyARM/toolschain/4.4.3/bin/arm-linux-gcc",

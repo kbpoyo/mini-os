@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.0.0)
 # 保存一些通用的配置
 set(CMAKE_VERBOSE_MAKEFILE on)   # 开启输出编译详细过程的提示
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   #生成编译命令json文件
-set(CMAKE_EXPORT_LINK_COMMANDS ON)   #生成编译命令json文件
 
 # gcc工具链前缀，根据实际情况做不同的设置
 set(TOOL_PREFIX "arm-linux-")
@@ -12,7 +11,7 @@ set(TOOL_PREFIX "arm-linux-")
 
 # C编译器与参数配置
 set(CMAKE_C_COMPILER "${TOOL_PREFIX}gcc") 
-# set(CMAKE_C_FLAGS "-g -o")
+set(CMAKE_C_FLAGS " -O0 -Wall -fno-pie -fno-stack-protector -std=c99")
 
 #-g参数用于生成调试信息，-c参数表示只编译不链接
 #-O0参数表示关闭优化，-m32参数表示生成32位代码，
@@ -25,7 +24,7 @@ set(CMAKE_C_COMPILER "${TOOL_PREFIX}gcc")
 # 汇编器与参数配置
 set(CMAKE_ASM_COMPILER "${TOOL_PREFIX}gcc")
 # set(CMAKE_ASM_FLAGS "-g -c")
-set(CMAKE_ASM_SOURCE_FILE_EXTENSIONS "asm")
+# set(CMAKE_ASM_SOURCE_FILE_EXTENSIONS "asm")
 
 # 链接器工具
 set(LINKER_TOOL "${TOOL_PREFIX}ld")
@@ -36,13 +35,14 @@ set(OBJDUMP_TOOL "${TOOL_PREFIX}objdump")
 set(READELF_TOOL "${TOOL_PREFIX}readelf")
 
 # 工程，启用C语言和汇编语言
-project(os LANGUAGES C)  
+project(mini-os LANGUAGES C)  
 enable_language(ASM)
 
 # 头文件搜索路径
 include_directories(
     ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/inc/
+    ${PROJECT_SOURCE_DIR}/src/inc/
+    ${PROJECT_SOURCE_DIR}/src/kernel/inc
 )
 
 # # 底层的若干子项目：含内核及应用程序
@@ -54,9 +54,8 @@ include_directories(
 # add_subdirectory(./source/snake)
 # add_subdirectory(./source/init)
 # add_subdirectory(./source/loop)
-add_subdirectory(./src/test_1)
-add_subdirectory(./src/led_test)
-add_subdirectory(./src/uart_test)
+add_subdirectory(./src/kernel)
+add_subdirectory(./src/init)
 
 # # 添加编译依赖，先生成app库，再生成kernel和shell
 # # 不加则cmake则可能先编译shell和kernel，而缺少libapp，导致编译错误
