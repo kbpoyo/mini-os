@@ -1,13 +1,9 @@
 
 
     .text
-    .global _start
+    .global _kernel_init
 
-_start:
-    //关中断
-    mrs r0, cpsr
-    orr r0, r0, #0x00df
-    msr cpsr_c, r0
+_kernel_init:
     mov r0, #0
     mov r1, r0
     mov r2, r0

@@ -21,6 +21,17 @@
                 "cwd": "${workspaceRoot}/script/"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "下载bin文件",
+            "type": "shell",
+            "linux": {
+                "command": "bash JLinkCMD-download.sh"
+            },
+            "options": {
+                "cwd": "${workspaceRoot}/script/"
+            },
+            "problemMatcher": []
         }
     ],
     "version": "2.0.0"

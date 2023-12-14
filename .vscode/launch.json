@@ -31,6 +31,11 @@
                     "description": "download file to MCU",
                     "ignoreFailures": false
                 },
+                {
+                    "description": "加载kernel符号文件",
+                    "text": "add-symbol-file ./image/kernel.elf 0x30000000",
+                    "ignoreFailures": false
+                },
         
                 // {
                 //     "text": "b main",

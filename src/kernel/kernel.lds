@@ -1,4 +1,4 @@
-ENTRY(_start)
+ENTRY(_kernel_init)
 
 SECTIONS {/*SECTIONS必须大写*/
     . = 0x30000000;
