@@ -1,8 +1,10 @@
 
-#include "tools/uart.h"
-
+#include "soc/uart.h"
+#include "soc/gpio.h"
 
 int kernel_init () {
+
+    gpio_init();
 
     uart_init();
 

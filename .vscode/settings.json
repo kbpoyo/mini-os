@@ -2,7 +2,9 @@
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "C_Cpp.errorSquiggles": "enabled",
     "files.associations": {
+        "*.S": "arm",
         "klib.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "gpio.h": "c"
     }
 }

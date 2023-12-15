@@ -3,16 +3,15 @@
     
     .text
     .global _start
-    .extern uart_init
 
 _start:
-    bl _exc_handler_reset
-    bl _exc_handler_undef
-    bl _exc_handler_swi
-    bl _exc_handler_abort
-    .word 0x0
-    bl _exc_handler_irq
-    bl _exc_handler_ifq
+    b _exc_handler_reset
+    b _exc_handler_undef
+    b _exc_handler_swi
+    b _exc_handler_abort
+    nop
+    b _exc_handler_irq
+    b _exc_handler_ifq
 
 
 
@@ -41,6 +40,10 @@ _exc_handler_reset:
     ldr r1, =rCLKDIVN_INIT
     str r1, [r0]
 
+    ldr r0, =_rCAMDIVN  //设置摄像头时钟分频控制寄存器，配合rCLKDIVN使用
+    ldr r1, =rCAMDIVN_INIT
+    str r1, [r0]
+
     mrc p15, 0, r0, c1, c0, 0   //设置协处理器的c1寄存器，使cpu进入异步总线模式，不然cpu使用的是HCLK而不是FCLK
     orr r0, r0, #0xc0000000
     mcr p15, 0, r0, c1, c0, 0
@@ -58,13 +61,17 @@ _exc_handler_reset:
     nop
 
     ldr r0, =_rMPLLCON  //设置MPLL
-    ldr r1, =((M_MDIV << 12) + (M_PDIV) << 4 + M_SDIV)
+    ldr r1, =((M_MDIV << 12) + (M_PDIV << 4) + M_SDIV)
+    str r1, [r0]
+
+    ldr r0, =_rCLKCON   //初始化外设时钟使能控制寄存器
+    ldr r1, =rCLKCON_INIT
     str r1, [r0]
 
     //4.初始化SDRAM
     ldr r0, =_rBWSCON   //初始化各个块的总线宽度和wait状态
     ldr r1, =rBWSCON_INIT
-    ldr r1, [r0]
+    str r1, [r0]
 
     ldr r0, =_rBANKCON0 //初始化bank0~5
     ldr r1, =rBANKCON_0_5_INIT
@@ -97,8 +104,10 @@ _exc_handler_reset:
     str r2, [r0]
     str r2, [r1]
 
-    bl uart_init
+    ldr sp, =0x34000000
     ldr pc, =KERNEL_INIT_ADDR
+
+    
 
 
 _exc_handler_undef:

@@ -1,4 +1,5 @@
 
+#include "common/register_addr.h"
 
     .text
     .global _kernel_init
@@ -18,6 +19,17 @@ _kernel_init:
     mov r11, r0
     mov r12, r0
     mov r14, r0
-    ldr r13, =0x34000000
     
+    //打开中断
+    mrs r0, cpsr
+    bic r0, #0xc0
+    msr cpsr_c, r0
+
+    ldr r1, =0
+    ldr r0, =_rINTMSK
+    str r1, [r0]
+
+	ldr	r0,=_rINTSUBMSK
+	str	r1,[r0] 
+
     bl kernel_init

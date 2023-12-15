@@ -1,6 +1,6 @@
 #include <stdarg.h>
 #include "common/types.h"
-#include "tools/uart.h"
+#include "soc/uart.h"
 #include "tools/klib.h"
 
 static int which_uart __attribute__((section(".data"))) = 0; 
@@ -20,17 +20,17 @@ void uart_init() {
                                                           //      0          1       0    ,     0          1        0           0     ,       01          01
                                                           //    PCLK       Level    Pulse    Disable    Generate  Normal      Normal        Interrupt or Polling
     rUCON0 = 0x245;                                       // Control register
-    rUBRDIV0 = ((int)(PCLK / 16. / BAUDRATE + 0.5) - 1);  // Baud rate divisior register 0
+    rUBRDIV0 = ((int)(OS_PCLK / (16 * BAUDRATE)) - 1);  // Baud rate divisior register 0
     // UART1
     rULCON1 = 0x3;
     rUCON1 = 0x245;
-    rUBRDIV1 = ((int)(PCLK / 16. / BAUDRATE + 0.5) - 1);
+    rUBRDIV1 = ((int)(OS_PCLK / (16 * BAUDRATE)) - 1);
     // UART2
     rULCON2 = 0x3;
     rUCON2 = 0x245;
-    rUBRDIV2 = ((int)(PCLK / 16. / BAUDRATE + 0.5) - 1);
+    rUBRDIV2 = ((int)(OS_PCLK / (16 * BAUDRATE)) - 1);
 
-    for (int i = 0; i < 100; i++);
+    //for (int i = 0; i < 100; i++);
 
     char * str = "\nuart init success!\n";
     uart_send_str(str);

@@ -31,15 +31,22 @@
 #define rCAMDIVN    (*(volatile unsigned *)_rCAMDIVN)	//USB, CAM Clock divider control
 
 #define rLOCKTIME_INIT 0xffffffff   //大于300us即可
+//设置时钟分频寄存器
 #define rCLKDIVN_INIT ((0x2 << 1) | (1 << 0))   //FCLK:HCLK:PCLK=4:1:0.5 ,需要设置进入异步总线模式
+//设置摄像头时钟分频寄存器
+#define rCAMDIVN_INIT   0x0
+
 //UPLL=48mhz
 #define U_MDIV  0x38
 #define U_PDIV  0x2
 #define U_SDIV  0x2
-//FLCK = MPLL = 400Mhz(数据手册中没有准确的400mhz，浏览器搜索获得) 
+//FCLK = MPLL = 400Mhz(数据手册中没有准确的400mhz，浏览器搜索获得) 
 #define M_MDIV  0x5c
 #define M_PDIV  0x1
 #define M_SDIV  0x1
+
+//设置时钟控制寄存器
+#define rCLKCON_INIT    0xfffff0
 
 //中断相关寄存器
 // INTERRUPT
@@ -89,7 +96,7 @@
 //ST（启动/禁止SDRAM的数据掩码引脚。对于SDRAM，此位置0；对于SRAM，此位置1）
 //WS（是否使用存储器的WAIT信号，通常置0为不使用）
 //DW（两位，设置位宽。此板子的SDRAM是32位，故将DW6设为10）
-#define rBWSCON_INIT 0x22000008
+#define rBWSCON_INIT 0x22000000
 
 //bank控制寄存器相关位设置
 #define rBANKCON_0_5_INIT    (0x0700)
@@ -103,6 +110,8 @@
 
 //SDRAM模式寄存器设置
 #define rMRSRB_INIT   (0x3 << 4)
+
+
 
 //NANDFLASH相关寄存器
 #define rNFCONF		(*(volatile unsigned *)0x4E000000)		//NAND Flash configuration
@@ -123,5 +132,138 @@
 #define rNFSECC		(*(volatile unsigned *)0x4E000034)
 #define rNFSBLK		(*(volatile unsigned *)0x4E000038)		//NAND Flash Start block address
 #define rNFEBLK		(*(volatile unsigned *)0x4E00003C)		//NAND Flash End block address
+
+
+// UART
+#define rULCON0 (*(volatile unsigned *)0x50000000)    // UART 0 Line control
+#define rUCON0 (*(volatile unsigned *)0x50000004)     // UART 0 Control
+#define rUFCON0 (*(volatile unsigned *)0x50000008)    // UART 0 FIFO control
+#define rUMCON0 (*(volatile unsigned *)0x5000000c)    // UART 0 Modem control
+#define rUTRSTAT0 (*(volatile unsigned *)0x50000010)  // UART 0 Tx/Rx status
+#define rUERSTAT0 (*(volatile unsigned *)0x50000014)  // UART 0 Rx error status
+#define rUFSTAT0 (*(volatile unsigned *)0x50000018)   // UART 0 FIFO status
+#define rUMSTAT0 (*(volatile unsigned *)0x5000001c)   // UART 0 Modem status
+#define rUBRDIV0 (*(volatile unsigned *)0x50000028)   // UART 0 Baud rate divisor
+
+#define rULCON1 (*(volatile unsigned *)0x50004000)    // UART 1 Line control
+#define rUCON1 (*(volatile unsigned *)0x50004004)     // UART 1 Control
+#define rUFCON1 (*(volatile unsigned *)0x50004008)    // UART 1 FIFO control
+#define rUMCON1 (*(volatile unsigned *)0x5000400c)    // UART 1 Modem control
+#define rUTRSTAT1 (*(volatile unsigned *)0x50004010)  // UART 1 Tx/Rx status
+#define rUERSTAT1 (*(volatile unsigned *)0x50004014)  // UART 1 Rx error status
+#define rUFSTAT1 (*(volatile unsigned *)0x50004018)   // UART 1 FIFO status
+#define rUMSTAT1 (*(volatile unsigned *)0x5000401c)   // UART 1 Modem status
+#define rUBRDIV1 (*(volatile unsigned *)0x50004028)   // UART 1 Baud rate divisor
+
+#define rULCON2 (*(volatile unsigned *)0x50008000)    // UART 2 Line control
+#define rUCON2 (*(volatile unsigned *)0x50008004)     // UART 2 Control
+#define rUFCON2 (*(volatile unsigned *)0x50008008)    // UART 2 FIFO control
+#define rUMCON2 (*(volatile unsigned *)0x5000800c)    // UART 2 Modem control
+#define rUTRSTAT2 (*(volatile unsigned *)0x50008010)  // UART 2 Tx/Rx status
+#define rUERSTAT2 (*(volatile unsigned *)0x50008014)  // UART 2 Rx error status
+#define rUFSTAT2 (*(volatile unsigned *)0x50008018)   // UART 2 FIFO status
+#define rUMSTAT2 (*(volatile unsigned *)0x5000801c)   // UART 2 Modem status
+#define rUBRDIV2 (*(volatile unsigned *)0x50008028)   // UART 2 Baud rate divisor
+
+#ifdef __BIG_ENDIAN
+#define rUTXH0 (*(volatile unsigned char *)0x50000023)  // UART 0 Transmission Hold
+#define rURXH0 (*(volatile unsigned char *)0x50000027)  // UART 0 Receive buffer
+#define rUTXH1 (*(volatile unsigned char *)0x50004023)  // UART 1 Transmission Hold
+#define rURXH1 (*(volatile unsigned char *)0x50004027)  // UART 1 Receive buffer
+#define rUTXH2 (*(volatile unsigned char *)0x50008023)  // UART 2 Transmission Hold
+#define rURXH2 (*(volatile unsigned char *)0x50008027)  // UART 2 Receive buffer
+
+#define WrUTXH0(ch) (*(volatile unsigned char *)0x50000023) = (unsigned char)(ch)
+#define RdURXH0() (*(volatile unsigned char *)0x50000027)
+#define WrUTXH1(ch) (*(volatile unsigned char *)0x50004023) = (unsigned char)(ch)
+#define RdURXH1() (*(volatile unsigned char *)0x50004027)
+#define WrUTXH2(ch) (*(volatile unsigned char *)0x50008023) = (unsigned char)(ch)
+#define RdURXH2() (*(volatile unsigned char *)0x50008027)
+
+#define UTXH0 (0x50000020 + 3)  // Byte_access address by DMA
+#define URXH0 (0x50000024 + 3)
+#define UTXH1 (0x50004020 + 3)
+#define URXH1 (0x50004024 + 3)
+#define UTXH2 (0x50008020 + 3)
+#define URXH2 (0x50008024 + 3)
+
+#else                                                   // Little Endian
+#define rUTXH0 (*(volatile unsigned char *)0x50000020)  // UART 0 Transmission Hold
+#define rURXH0 (*(volatile unsigned char *)0x50000024)  // UART 0 Receive buffer
+#define rUTXH1 (*(volatile unsigned char *)0x50004020)  // UART 1 Transmission Hold
+#define rURXH1 (*(volatile unsigned char *)0x50004024)  // UART 1 Receive buffer
+#define rUTXH2 (*(volatile unsigned char *)0x50008020)  // UART 2 Transmission Hold
+#define rURXH2 (*(volatile unsigned char *)0x50008024)  // UART 2 Receive buffer
+
+#define WrUTXH0(ch) (*(volatile unsigned char *)0x50000020) = (unsigned char)(ch)
+#define RdURXH0() (*(volatile unsigned char *)0x50000024)
+#define WrUTXH1(ch) (*(volatile unsigned char *)0x50004020) = (unsigned char)(ch)
+#define RdURXH1() (*(volatile unsigned char *)0x50004024)
+#define WrUTXH2(ch) (*(volatile unsigned char *)0x50008020) = (unsigned char)(ch)
+#define RdURXH2() (*(volatile unsigned char *)0x50008024)
+
+#define UTXH0 (0x50000020)  // Byte_access address by DMA
+#define URXH0 (0x50000024)
+#define UTXH1 (0x50004020)
+#define URXH1 (0x50004024)
+#define UTXH2 (0x50008020)
+#define URXH2 (0x50008024)
+
+#endif
+
+
+
+// I/O PORT 
+#define rGPACON    (*(volatile unsigned *)0x56000000)	//Port A control
+#define rGPADAT    (*(volatile unsigned *)0x56000004)	//Port A data
+
+#define rGPBCON    (*(volatile unsigned *)0x56000010)	//Port B control
+#define rGPBDAT    (*(volatile unsigned *)0x56000014)	//Port B data
+#define rGPBUP     (*(volatile unsigned *)0x56000018)	//Pull-up control B
+
+#define rGPCCON    (*(volatile unsigned *)0x56000020)	//Port C control
+#define rGPCDAT    (*(volatile unsigned *)0x56000024)	//Port C data
+#define rGPCUP     (*(volatile unsigned *)0x56000028)	//Pull-up control C
+
+#define rGPDCON    (*(volatile unsigned *)0x56000030)	//Port D control
+#define rGPDDAT    (*(volatile unsigned *)0x56000034)	//Port D data
+#define rGPDUP     (*(volatile unsigned *)0x56000038)	//Pull-up control D
+
+#define rGPECON    (*(volatile unsigned *)0x56000040)	//Port E control
+#define rGPEDAT    (*(volatile unsigned *)0x56000044)	//Port E data
+#define rGPEUP     (*(volatile unsigned *)0x56000048)	//Pull-up control E
+
+#define rGPFCON    (*(volatile unsigned *)0x56000050)	//Port F control
+#define rGPFDAT    (*(volatile unsigned *)0x56000054)	//Port F data
+#define rGPFUP     (*(volatile unsigned *)0x56000058)	//Pull-up control F
+
+#define rGPGCON    (*(volatile unsigned *)0x56000060)	//Port G control
+#define rGPGDAT    (*(volatile unsigned *)0x56000064)	//Port G data
+#define rGPGUP     (*(volatile unsigned *)0x56000068)	//Pull-up control G
+
+#define rGPHCON    (*(volatile unsigned *)0x56000070)	//Port H control
+#define rGPHDAT    (*(volatile unsigned *)0x56000074)	//Port H data
+#define rGPHUP     (*(volatile unsigned *)0x56000078)	//Pull-up control H
+
+#define rGPJCON    (*(volatile unsigned *)0x560000d0)	//Port J control
+#define rGPJDAT    (*(volatile unsigned *)0x560000d4)	//Port J data
+#define rGPJUP     (*(volatile unsigned *)0x560000d8)	//Pull-up control J
+
+#define rMISCCR    (*(volatile unsigned *)0x56000080)	//Miscellaneous control
+#define rDCLKCON   (*(volatile unsigned *)0x56000084)	//DCLK0/1 control
+#define rEXTINT0   (*(volatile unsigned *)0x56000088)	//External interrupt control register 0
+#define rEXTINT1   (*(volatile unsigned *)0x5600008c)	//External interrupt control register 1
+#define rEXTINT2   (*(volatile unsigned *)0x56000090)	//External interrupt control register 2
+#define rEINTFLT0  (*(volatile unsigned *)0x56000094)	//Reserved
+#define rEINTFLT1  (*(volatile unsigned *)0x56000098)	//Reserved
+#define rEINTFLT2  (*(volatile unsigned *)0x5600009c)	//External interrupt filter control register 2
+#define rEINTFLT3  (*(volatile unsigned *)0x560000a0)	//External interrupt filter control register 3
+#define rEINTMASK  (*(volatile unsigned *)0x560000a4)	//External interrupt mask
+#define rEINTPEND  (*(volatile unsigned *)0x560000a8)	//External interrupt pending
+#define rGSTATUS0  (*(volatile unsigned *)0x560000ac)	//External pin status
+#define rGSTATUS1  (*(volatile unsigned *)0x560000b0)	//Chip ID(0x32440000)
+#define rGSTATUS2  (*(volatile unsigned *)0x560000b4)	//Reset type
+#define rGSTATUS3  (*(volatile unsigned *)0x560000b8)	//Saved data0(32-bit) before entering POWER_OFF mode 
+#define rGSTATUS4  (*(volatile unsigned *)0x560000bc)	//Saved data0(32-bit) before entering POWER_OFF mode 
 
 #endif
