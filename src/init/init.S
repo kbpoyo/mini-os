@@ -122,7 +122,7 @@ _exc_handler_abort:
     bl _start
 
 _exc_handler_irq:
-    bl _start
+    ldr pc, =IRQ_HANDLER_ADDR
 
 _exc_handler_ifq:
     bl _start

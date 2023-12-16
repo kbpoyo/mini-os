@@ -9,6 +9,7 @@ void gpio_init() {
 
     //将key1按键初始化为EINT8中断
     rGPGCON = rGPGCON_INIT;
+    rGPGUP = 0xffff;
 
 
     //设置将三个串口的TXD和RXD引脚
@@ -19,6 +20,4 @@ void gpio_init() {
     rEXTINT0 = rEXTINT_INIT;
     rEXTINT1 = rEXTINT_INIT;
     rEXTINT2 = rEXTINT_INIT;
-
-
 }

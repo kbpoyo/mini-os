@@ -4,7 +4,7 @@
 #include "common/register_addr.h"
 
 //将key1按键初始化为EINT8中断
-#define rGPGCON_INIT    (0x2)   
+#define rGPGCON_INIT    ((0x2 << 6) | 0x2)   
 //将外部中断全设置为下降沿触发
 #define rEXTINT_INIT    0x22222222  
 

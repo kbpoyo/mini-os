@@ -5,6 +5,7 @@
         "*.S": "arm",
         "klib.h": "c",
         "types.h": "c",
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "irq.h": "c"
     }
 }

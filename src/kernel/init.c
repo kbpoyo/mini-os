@@ -1,6 +1,7 @@
 
 #include "soc/uart.h"
 #include "soc/gpio.h"
+#include "core/irq.h"
 
 int kernel_init () {
 
@@ -8,15 +9,17 @@ int kernel_init () {
 
     uart_init();
 
+    irq_init();
+
+
     while (1) {
-        char * str = "hello world!";
         int n = 100;
 
         while (n--) {
             int m = 100;
             // uart_send_str("hello world!\n");
             while (m--) {
-                uart_printf("str = %s, n = %d, m = %d\n", str, n, m);
+                uart_printf("rINTPND = %x rINTMSK = %x\n", rINTPND, rINTMSK);
             }
             
         }

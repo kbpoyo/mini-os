@@ -10,5 +10,6 @@
 
 //内核加载地址
 #define KERNEL_INIT_ADDR    0x30000000
+#define IRQ_HANDLER_ADDR (KERNEL_INIT_ADDR + 0x1000)
 
 #endif

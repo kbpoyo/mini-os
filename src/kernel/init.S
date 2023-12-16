@@ -3,6 +3,7 @@
 
     .text
     .global _kernel_init
+    .extern irq_handler
 
 _kernel_init:
     mov r0, #0
@@ -25,11 +26,14 @@ _kernel_init:
     bic r0, #0xc0
     msr cpsr_c, r0
 
-    ldr r1, =0
-    ldr r0, =_rINTMSK
-    str r1, [r0]
-
-	ldr	r0,=_rINTSUBMSK
-	str	r1,[r0] 
 
     bl kernel_init
+
+
+
+_irq_handler:
+    //保存异常cpu上下文
+    bl irq_handler
+
+    //恢复cpu上下文
+    subs pc, lr, #4

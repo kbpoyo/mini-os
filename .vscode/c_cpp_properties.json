@@ -3,15 +3,22 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/src/inc"
+                "${workspaceFolder}/src/inc",
                 "${workspaceFolder}/src/kernel/inc"
             ],
             "defines": [],
-            "compilerPath": "/home/kbpoyo/opt/FriendlyARM/toolschain/4.4.3/bin/arm-linux-gcc",
             "cStandard": "c99",
+            "cppStandard": "c++11",
             "intelliSenseMode": "linux-gcc-arm",
-            "configurationProvider": "ms-vscode.cmake-tools"
+            "mergeConfigurations": false,
+            "compilerPath": "/home/kbpoyo/opt/FriendlyARM/toolschain/4.4.3/bin/arm-linux-gcc",
+            "configurationProvider": "ms-vscode.cmake-tools",
+            "browse": {
+                "path": [
+                    "/home/kbpoyo/code/arm/mini-os"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
         }
     ],
     "version": 4

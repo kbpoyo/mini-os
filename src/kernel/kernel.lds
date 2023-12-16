@@ -1,4 +1,5 @@
 ENTRY(_kernel_init)
+_irq_handler = 0x30001000;
 
 SECTIONS {/*SECTIONS必须大写*/
     . = 0x30000000;
