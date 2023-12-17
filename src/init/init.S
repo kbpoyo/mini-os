@@ -8,7 +8,8 @@ _start:
     b _exc_handler_reset
     b _exc_handler_undef
     b _exc_handler_swi
-    b _exc_handler_abort
+    b _exc_handler_prefetch_abort
+    b _exc_handler_data_abort
     nop
     b _exc_handler_irq
     b _exc_handler_ifq
@@ -16,6 +17,12 @@ _start:
 
 
 _exc_handler_reset:
+    //调试用，确保当前为特权模式
+    mrs r0, cpsr
+    bic r0, #0x1f
+    orr r0, #0x13
+    msr cpsr, r0
+
     //1.关闭看门狗
     ldr r0, =_rWTCON
     ldr r1, =0x0
@@ -104,10 +111,49 @@ _exc_handler_reset:
     str r2, [r0]
     str r2, [r1]
 
-    ldr sp, =0x34000000
-    ldr pc, =KERNEL_INIT_ADDR
+    bl _init_stack
+
+    ldr r0, =EXCEPTION_RESET  //标志当前处理在处理rest异常
+    ldr pc, =KERNEL_ADDR
 
     
+
+_init_stack:
+    //初始化特权模式的栈空间
+    ldr sp, =STACK_ADDR_SVC   //svc模式
+    mrs r1, cpsr    //保存svc模式下的cpsr
+
+    mrs r0, cpsr
+    bic r0, #0x1f
+    orr r0, #0x11   //将当前状态设置为FIQ模式，并初始化栈空间
+    msr cpsr, r0
+    ldr sp, =STACK_ADDR_FIQ
+
+    bic r0, #0x1f
+    orr r0, #0x12
+    msr cpsr, r0    //将当前状态设置为IRQ模式，并初始化栈空间
+    ldr sp, =STACK_ADDR_IRQ 
+
+    bic r0, #0x1f
+    orr r0, #0x17    //将当前状态设置为Abort模式，并初始化栈空间
+    msr cpsr, r0
+    ldr sp, =STACK_ADDR_ABORT
+
+    bic r0, #0x1f
+    orr r0, #0x1b    //将当前状态设置为UND模式，并初始化栈空间
+    msr cpsr, r0
+    ldr sp, =STACK_ADDR_UND
+
+    bic r0, #0x1f
+    orr r0, #0x1f    //将当前状态设置为SYS或者USER模式，并初始化栈空间
+    msr cpsr, r0
+    ldr sp, =STACK_ADDR_SYS_AND_USER
+
+    msr cpsr, r1    //恢复到svc模式
+
+    mov pc, lr
+
+
 
 
 _exc_handler_undef:
@@ -118,11 +164,18 @@ _exc_handler_undef:
 _exc_handler_swi:
     bl _start
 
-_exc_handler_abort:
+_exc_handler_data_abort:
     bl _start
 
+_exc_handler_prefetch_abort:
+    bl _start
+    
+
 _exc_handler_irq:
-    ldr pc, =IRQ_HANDLER_ADDR
+    sub lr, lr, #4
+    stmfd sp!, {r0-r12, lr} //保存上下文
+    ldr r0, =EXCEPTION_IRQ
+    ldr pc, =KERNEL_ADDR
 
 _exc_handler_ifq:
     bl _start

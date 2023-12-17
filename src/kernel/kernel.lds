@@ -1,5 +1,4 @@
-ENTRY(_kernel_init)
-_irq_handler = 0x30001000;
+ENTRY(_exception_handler)
 
 SECTIONS {/*SECTIONS必须大写*/
     . = 0x30000000;
@@ -7,7 +6,6 @@ SECTIONS {/*SECTIONS必须大写*/
     /*记录只读段的起始地址*/
     PROVIDE(s_text = .);
      .text : {   /*冒号前必须有空格 */
-        _start = .;
        *(.text) 
        . = ALIGN(4);
     }

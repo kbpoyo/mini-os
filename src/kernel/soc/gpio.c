@@ -7,9 +7,8 @@
  */
 void gpio_init() {
 
-    //将key1按键初始化为EINT8中断
+    //将key1按键初始化为EINT8中断，key2为EINT11中断
     rGPGCON = rGPGCON_INIT;
-    rGPGUP = 0xffff;
 
 
     //设置将三个串口的TXD和RXD引脚

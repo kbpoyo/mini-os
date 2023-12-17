@@ -9,7 +9,7 @@
             "options": {
                 "cwd": "${workspaceRoot}/script/"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
         },
         {
             "label": "wsl串口启动",

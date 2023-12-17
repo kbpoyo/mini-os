@@ -1,9 +1,32 @@
 
 #include "common/register_addr.h"
+#include "common/os_config.h"
 
     .text
     .global _kernel_init
+    .global _exception_handler
     .extern irq_handler
+
+#define EXCEPTION_RESET 0
+#define EXCEPTION_UNDEF 1
+#define EXCEPTION_SWI   2
+#define EXCEPTION_PREFETCH_ABORT 3
+#define EXCEPTION_DATA_ABORT 4
+#define EXCEPTION_IRQ   5
+#define EXCEPTION_FIQ   6
+
+
+_exception_handler:
+    
+    cmp r0, #EXCEPTION_IRQ
+    beq _irq_handler
+   
+   cmp r0, #EXCEPTION_RESET
+   beq _kernel_init
+
+ 
+
+
 
 _kernel_init:
     mov r0, #0
@@ -31,9 +54,10 @@ _kernel_init:
 
 
 
-_irq_handler:
-    //保存异常cpu上下文
-    bl irq_handler
 
+_irq_handler:
+
+    //保存cpu上下文
+    bl irq_handler
     //恢复cpu上下文
-    subs pc, lr, #4
+    ldmfd sp!, {r0-r12, pc}^
