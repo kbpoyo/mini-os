@@ -116,8 +116,6 @@ _exc_handler_reset:
     ldr r0, =EXCEPTION_RESET  //标志当前处理在处理rest异常
     ldr pc, =KERNEL_ADDR
 
-    
-
 _init_stack:
     //初始化特权模式的栈空间
     ldr sp, =STACK_ADDR_SVC   //svc模式

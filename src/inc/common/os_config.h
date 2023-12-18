@@ -30,4 +30,8 @@
 #define STACK_ADDR_SYS_AND_USER     STACK_ADDR_UND - STACK_SVC_SIZE
 
 
+
+//定义任务时间片长度
+#define TASK_TIME_SLICE_MS 1000 //ms
+
 #endif

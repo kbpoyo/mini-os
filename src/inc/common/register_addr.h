@@ -12,7 +12,7 @@
 #define rWTDAT   (*(volatile unsigned *)_rWTDAT)	//Watch-dog timer data
 #define rWTCNT   (*(volatile unsigned *)_rWTCNT)	//Eatch-dog timer count
 
-//定时器和电源相关寄存器
+//时钟和电源相关寄存器
 // CLOCK & POWER MANAGEMENT
 #define _rLOCKTIME   0x4c000000
 #define _rMPLLCON    0x4c000004
@@ -265,5 +265,30 @@
 #define rGSTATUS2  (*(volatile unsigned *)0x560000b4)	//Reset type
 #define rGSTATUS3  (*(volatile unsigned *)0x560000b8)	//Saved data0(32-bit) before entering POWER_OFF mode 
 #define rGSTATUS4  (*(volatile unsigned *)0x560000bc)	//Saved data0(32-bit) before entering POWER_OFF mode 
+
+
+
+//定时器相关寄存器
+// PWM TIMER
+#define rTCFG0  (*(volatile unsigned *)0x51000000)	//Timer 0 configuration
+#define rTCFG1  (*(volatile unsigned *)0x51000004)	//Timer 1 configuration
+#define rTCON   (*(volatile unsigned *)0x51000008)	//Timer control
+#define rTCNTB0 (*(volatile unsigned *)0x5100000c)	//Timer count buffer 0
+#define rTCMPB0 (*(volatile unsigned *)0x51000010)	//Timer compare buffer 0
+#define rTCNTO0 (*(volatile unsigned *)0x51000014)	//Timer count observation 0
+#define rTCNTB1 (*(volatile unsigned *)0x51000018)	//Timer count buffer 1
+#define rTCMPB1 (*(volatile unsigned *)0x5100001c)	//Timer compare buffer 1
+#define rTCNTO1 (*(volatile unsigned *)0x51000020)	//Timer count observation 1
+#define rTCNTB2 (*(volatile unsigned *)0x51000024)	//Timer count buffer 2
+#define rTCMPB2 (*(volatile unsigned *)0x51000028)	//Timer compare buffer 2
+#define rTCNTO2 (*(volatile unsigned *)0x5100002c)	//Timer count observation 2
+#define rTCNTB3 (*(volatile unsigned *)0x51000030)	//Timer count buffer 3
+#define rTCMPB3 (*(volatile unsigned *)0x51000034)	//Timer compare buffer 3
+#define rTCNTO3 (*(volatile unsigned *)0x51000038)	//Timer count observation 3
+#define rTCNTB4 (*(volatile unsigned *)0x5100003c)	//Timer count buffer 4
+#define rTCNTO4 (*(volatile unsigned *)0x51000040)	//Timer count observation 4
+
+
+
 
 #endif

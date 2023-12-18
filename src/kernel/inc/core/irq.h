@@ -3,6 +3,8 @@
 
 #include "common/register_addr.h"
 
+#define IRQ_NUM_MAX 32
+
 //定义中断向量号
 
 //无次级中断
@@ -34,7 +36,7 @@
 #define EINT8_PRIM  EINT8_23
 #define EINT8_SUB   8
 #define EINT11_PRIM EINT8_23
-#define EINT11_SUB
+#define EINT11_SUB  11
 
 
 void irq_init();
@@ -51,6 +53,8 @@ void irq_handler();
 
 
 typedef void(*irq_handler_t)(void);
+
+void irq_handler_register(int irq_num, irq_handler_t handler_for_irq);
 
 
 #endif

@@ -6,6 +6,8 @@
         "klib.h": "c",
         "types.h": "c",
         "gpio.h": "c",
-        "irq.h": "c"
+        "irq.h": "c",
+        "assert.h": "c",
+        "timer.h": "c"
     }
 }

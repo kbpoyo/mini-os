@@ -43,11 +43,6 @@ _kernel_init:
     mov r11, r0
     mov r12, r0
     mov r14, r0
-    
-    //打开中断
-    mrs r0, cpsr
-    bic r0, #0xc0
-    msr cpsr_c, r0
 
 
     bl kernel_init

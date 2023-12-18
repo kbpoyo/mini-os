@@ -2,6 +2,7 @@
 #include "core/irq.h"
 #include "soc/gpio.h"
 #include "soc/uart.h"
+#include "soc/timer.h"
 
 void delay(uint32_t ms) {
     for (uint32_t i = 0; i < ms; i++) {
@@ -16,6 +17,10 @@ int kernel_init() {
     uart_init();
 
     irq_init();
+
+    irq_start();
+
+    timer_init();
 
     while (1) {
         delay(1000);

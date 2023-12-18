@@ -1,40 +1,35 @@
 #include "core/irq.h"
-#include "tools/log.h"
+
 #include "common/types.h"
-/**
- * @brief 初始化irq中断向量表
- *
- */
-void irq_init() {
-    log_printf("irq init start......\n");
-    //设置中断模式，全部为irq
-    rINTMOD = 0x0;
+#include "tools/assert.h"
+#include "tools/log.h"
 
-    //设置中断优先级,0~6个中断发生模块全部启用轮询
-    rPRIORITY = 0x7f;
-
-    irq_clear_all();
-
-    irq_enable(EINT8_PRIM, EINT8_SUB);
-
-    log_printf("irq init success......\n");
-}
+static irq_handler_t irq_handler_call[IRQ_NUM_MAX];
 
 /**
  * @brief 开中断
- * 
+ *
  */
 void irq_start() {
-
-
+    __asm__ volatile(
+        "mrs r0, cpsr\r\n"
+        "bic r0, #0x80\r\n"
+        "msr cpsr, r0\r\n"
+        ::
+    );
 }
 
 /**
  * @brief 关中断
- * 
+ *
  */
 void irq_close() {
-
+       __asm__ volatile(
+        "mrs r0, cpsr\r\n"
+        "orr r0, #0x80\r\n"
+        "msr cpsr, r0\r\n"
+        ::
+    );
 }
 
 /**
@@ -47,11 +42,11 @@ void irq_enable(int irq_num_prim, int irq_num_sub) {
     if (irq_num_prim >= 0) {
         rINTMSK = ((~(1 << irq_num_prim)) & rINTMSK);
     }
-    
+
     if (irq_num_sub >= 0) {
-        if (irq_num_prim == EINT4_27 || irq_num_prim == EINT8_23) { //使能外部中断屏蔽寄存器
+        if (irq_num_prim == EINT4_27 || irq_num_prim == EINT8_23) {  // 使能外部中断屏蔽寄存器
             rEINTMASK = ((~(1 << irq_num_sub)) & rEINTMASK);
-        } else {    //使能次中断源屏蔽寄存器
+        } else {  // 使能次中断源屏蔽寄存器
             rINTSUBMSK = ((~(1 << irq_num_sub)) & rINTSUBMSK);
         }
     }
@@ -64,18 +59,17 @@ void irq_enable(int irq_num_prim, int irq_num_sub) {
  * @param irq_num_secon 次中断源号
  */
 void irq_disable(int irq_num_prim, int irq_num_sub) {
-     if (irq_num_prim >= 0) {    
+    if (irq_num_prim >= 0) {
         rINTMSK = ((1 << irq_num_prim) | rINTMSK);
     }
 
     if (irq_num_sub >= 0) {
         if (irq_num_prim == EINT4_27 || irq_num_prim == EINT8_23) {
-            rEINTMASK = ((1 << irq_num_sub) | rEINTMASK);   //操作外部中断屏蔽寄存器
-        } else {//操作次中断源屏蔽寄存器
+            rEINTMASK = ((1 << irq_num_sub) | rEINTMASK);  // 操作外部中断屏蔽寄存器
+        } else {                                           // 操作次中断源屏蔽寄存器
             rINTSUBMSK = ((1 << irq_num_sub) | rINTSUBMSK);
         }
     }
-   
 }
 
 /**
@@ -123,26 +117,81 @@ void irq_clear(int irq_num_prim, int irq_num_sub) {
  *
  */
 void irq_clear_all() {
-    //先清除次级中断挂起寄存器和外部中断挂起寄存器
+    // 先清除次级中断挂起寄存器和外部中断挂起寄存器
     rSUBSRCPND = 0xffffffff;
     rEINTPEND = 0xffffffff;
-    
-    //再清除源中断挂起寄存器的全部位
+
+    // 再清除源中断挂起寄存器的全部位
     rSRCPND = 0xffffffff;
 
-    //再清除中断未决寄存器的全部位
+    // 再清除中断未决寄存器的全部位
     rINTPND = 0xffffffff;
 }
 
-
 /**
  * @brief 中断处理函数
- * 
+ *
  */
 void irq_handler() {
-   int irq_num = rINTOFFSET; 
+    int irq_num = rINTOFFSET;
 
     log_printf("irq_num = %d\n", irq_num);
-    irq_clear(irq_num, NOSUBINT); 
-    irq_clear_all(); 
+
+    irq_handler_call[irq_num]();
+}
+
+/**
+ * @brief 为中断向量号注册中断函数
+ *
+ * @param irq_num
+ * @param handler_for_irq
+ */
+void irq_handler_register(int irq_num, irq_handler_t handler_for_irq) {
+    ASSERT(irq_num >= 0 && irq_num < IRQ_NUM_MAX);
+
+    irq_handler_call[irq_num] = handler_for_irq;
+}
+
+/**
+ * @brief 外部中断8-23的中断处理函数
+ *
+ */
+void irq_handler_for_eint8_23() {
+    ASSERT(rINTOFFSET = EINT8_23);
+
+    if (((1 << EINT8_SUB) & rEINTPEND) && !((1 << EINT8_SUB) & rEINTMASK)) {  // EINT8触发成功
+        log_printf("EINT8 has complete!\n");
+
+        // 清除中断
+        irq_clear(EINT8_PRIM, EINT8_SUB);
+    }
+
+    if (((1 << EINT11_SUB) & rEINTPEND) && !((1 << EINT11_SUB) & rEINTMASK)) {  // EINT11触发成功
+        log_printf("EINT11 has complete!\n");
+
+        irq_clear(EINT11_PRIM, EINT11_SUB);
+    }
+}
+
+/**
+ * @brief 初始化irq中断向量表
+ *
+ */
+void irq_init() {
+    log_printf("irq init start......\n");
+    // 设置中断模式，全部为irq
+    rINTMOD = 0x0;
+
+    // 设置中断优先级,0~6个中断发生模块全部启用轮询
+    rPRIORITY = 0x7f;
+
+    irq_clear_all();
+
+    irq_enable(EINT8_PRIM, EINT8_SUB);
+    irq_enable(EINT11_PRIM, EINT11_SUB);
+
+    // 注册中断处理函数
+    irq_handler_register(EINT8_23, irq_handler_for_eint8_23);
+
+    log_printf("irq init success......\n");
 }
