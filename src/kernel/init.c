@@ -3,7 +3,8 @@
 #include "soc/gpio.h"
 #include "soc/uart.h"
 #include "soc/timer.h"
-
+#include "common/cpu_instr.h"
+#include "core/task.h"
 void delay(uint32_t ms) {
     for (uint32_t i = 0; i < ms; i++) {
         for (uint32_t j = 0; j < 400; j++)
@@ -18,9 +19,9 @@ int kernel_init() {
 
     irq_init();
 
-    irq_start();
+    cpu_irq_start();
 
-    timer_init();
+    // timer_init();
 
     while (1) {
         delay(1000);

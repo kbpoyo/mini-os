@@ -5,15 +5,9 @@
     .text
     .global _kernel_init
     .global _exception_handler
+    .global task_switch_by_sp
     .extern irq_handler
 
-#define EXCEPTION_RESET 0
-#define EXCEPTION_UNDEF 1
-#define EXCEPTION_SWI   2
-#define EXCEPTION_PREFETCH_ABORT 3
-#define EXCEPTION_DATA_ABORT 4
-#define EXCEPTION_IRQ   5
-#define EXCEPTION_FIQ   6
 
 
 _exception_handler:
@@ -52,7 +46,26 @@ _kernel_init:
 
 _irq_handler:
 
-    //保存cpu上下文
     bl irq_handler
     //恢复cpu上下文
     ldmfd sp!, {r0-r12, pc}^
+
+
+
+task_switch_by_sp:
+    //保存cpu上下文环境, r0存储当前任务sp，r1存储目标任务sp
+    push {r1}
+    mrs r1, cpsr
+    sub r0, #4
+    str r1, [r0]
+    pop {r1}
+    sub r1, #64
+    stmia r0, {r0-r15}
+
+    //切换任务栈空间
+    mov sp, r1
+
+    //恢复新任务的cpu上下
+    pop {r1}
+    msr cpsr, r1
+    ldmfd sp!, {r0-r15}

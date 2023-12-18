@@ -36,8 +36,11 @@ void timer_init() {
     rTCFG0 = rTCFG0_INIT;
     rTCFG1 = rTCGG1_INIT;
 
+    //先关闭一下定时器,调试用
+    rTCON = 0x0;
+
     //设置定时器每一个时间片触发一次中断
-    rTCNTB4 = (TASK_TIME_SLICE_MS * 1000) / TIMER_RESOLVING_POWER; 
+    rTCNTB4 = (uint32_t)(TASK_TIME_SLICE_MS * 1000) / TIMER_RESOLVING_POWER; 
     rTCON = HAND_REFLASH_4; //手动更新定时器4的计数器
     rTCON = AUTORELOAD_AND_START_4;   //关闭手动更新位,设置自动重载并打开定时器4
 }

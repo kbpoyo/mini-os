@@ -6,31 +6,6 @@
 
 static irq_handler_t irq_handler_call[IRQ_NUM_MAX];
 
-/**
- * @brief 开中断
- *
- */
-void irq_start() {
-    __asm__ volatile(
-        "mrs r0, cpsr\r\n"
-        "bic r0, #0x80\r\n"
-        "msr cpsr, r0\r\n"
-        ::
-    );
-}
-
-/**
- * @brief 关中断
- *
- */
-void irq_close() {
-       __asm__ volatile(
-        "mrs r0, cpsr\r\n"
-        "orr r0, #0x80\r\n"
-        "msr cpsr, r0\r\n"
-        ::
-    );
-}
 
 /**
  * @brief 使能某一中断

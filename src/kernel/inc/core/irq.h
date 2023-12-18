@@ -40,8 +40,6 @@
 
 
 void irq_init();
-void irq_start();
-void irq_close();
 void irq_enable(int irq_num_prim, int irq_num_sub);
 void irq_disable(int irq_num_prim, int irq_num_sub);
 void irq_enable_all();
@@ -50,6 +48,7 @@ void irq_clear(int irq_num_prim, int irq_num_sub);
 void irq_clear_all();
 
 void irq_handler();
+
 
 
 typedef void(*irq_handler_t)(void);

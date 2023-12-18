@@ -28,11 +28,14 @@ typedef unsigned short uint16_t;
 #ifndef _UINT32_T_DECLARED
 #define _UINT32_T_DECLARED
 typedef unsigned long uint32_t;
-#endif
-
 
 #define NULL 0
 #define TRUE    1
 #define FALSE   0
+
+#endif
+
+
+
 
 #endif
