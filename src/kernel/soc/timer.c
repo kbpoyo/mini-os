@@ -5,6 +5,7 @@
 #include "tools/assert.h"
 #include "tools/log.h"
 #include "common/types.h"
+#include "core/task.h"
 
 
 static uint32_t tick __attribute__((section(".data"))) = 0;
@@ -15,13 +16,15 @@ static uint32_t tick __attribute__((section(".data"))) = 0;
  */
 static void irq_handler_for_timer4() {
     ASSERT((rINTOFFSET == INT_TIMER4));
-
-
-    log_printf("timer handler ok tick = %x!\n", tick++);
-
-
-    //清除中断
+     //清除中断
     irq_clear(INT_TIMER4, NOSUBINT);
+
+    // log_printf("timer handler ok tick = %x!\n", tick++);
+
+
+   
+
+    task_slice_end();
 }
 
 /**

@@ -10,6 +10,8 @@
         "assert.h": "c",
         "timer.h": "c",
         "task.h": "c",
-        "cpu_instr.h": "c"
+        "cpu_instr.h": "c",
+        "list.h": "c",
+        "sem.h": "c"
     }
 }

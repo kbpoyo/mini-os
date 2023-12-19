@@ -36,7 +36,7 @@
 
 //设置用户初始状态寄存器
 #define TASK_CPSR_USER  0x10
-#define TASK_CPSR_SYS   0x13
+#define TASK_CPSR_SYS   0x1f
 
 // 定义任务状态枚举类型
 typedef enum _task_state_t {
@@ -72,12 +72,15 @@ typedef struct _task_t {
   list_node_t task_node;    // 用于插入任务队列的节点，标记task在任务队列中的位置
   list_node_t wait_node;   //用于插入信号量对象的等待队列的节点，标记task正在等待信号量
 
-  uint32_t sp;  //任务的栈空间
+  uint32_t svc_sp;  //任务的内核栈空间
+  // uint32_t base_svc_sp; //任务内核栈空间的初始值
   
 
 } task_t;
 
-// int task_init(task_t *task, const char *name, uint32_t entry, uint32_t esp, uint32_t flag);
+typedef uint32_t cpu_state_t;
+
+int task_init(task_t *task, const char *name, uint32_t entry, uint32_t esp, uint32_t flag);
 // void task_switch_from_to(task_t *from, task_t *to);
 
 
@@ -103,6 +106,7 @@ typedef struct _task_args_t {
 
 
 
+
 void task_manager_init(void);
 uint32_t task_enter_protection(void);
 void task_leave_protection(uint32_t state);
@@ -110,15 +114,17 @@ void task_first_init(void);
 task_t *task_first_task(void);
 void task_set_ready(task_t *task);
 void task_set_unready(task_t *task);
-// void task_set_sleep(task_t *task, uint32_t slice);
-// void task_set_wakeup(task_t *task);
-// void task_slice_end(void);
+void task_set_sleep(task_t *task, uint32_t slice);
+void task_set_wakeup(task_t *task);
+void task_slice_end(void);
 void task_switch(void);
 task_t* task_current(void);
+task_t* task_alloc(void);
 
+void task_start(task_t *task);
 
 // //系统调用函数
-// void sys_sleep(uint32_t ms);
+void sys_sleep(uint32_t ms);
 // int sys_yield(void);
 // int sys_getpid(void);
 // int sys_fork(void);

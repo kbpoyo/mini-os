@@ -11,7 +11,7 @@ __attribute__((always_inline)) static uint32_t cpu_get_cpser(void) {
         "mrs %[ret], cpsr\n"
         :[ret]"=r"(ret)
         :
-        :"memory"
+        :"r0"
     );
 
     return ret;
@@ -22,7 +22,7 @@ __attribute__((always_inline)) static void cpu_set_cpsr(uint32_t state) {
         "msr cpsr, %[state]\n"
         :
         :[state]"r"(state)
-        :"memory"
+        :"r0"
     );  
 }
 
@@ -36,7 +36,7 @@ __attribute__((always_inline)) static void cpu_irq_start() {
         "mrs r0, cpsr\n"
         "bic r0, #0x80\n"
         "msr cpsr, r0\n"
-        :::"memory"
+        :::"r0","memory"
     );
 }
 
@@ -49,9 +49,27 @@ __attribute__((always_inline)) static void cpu_irq_close() {
         "mrs r0, cpsr\n"
         "orr r0, #0x80\n"
         "msr cpsr, r0\n"
-        :::"memory"
+        :::"r0"
     );
 }
+
+__attribute__((always_inline)) static void cpu_set_irq_stack(uint32_t svc_sp) {
+       __asm__ __volatile__(
+        "mrs r0, cpsr\n"
+        "bic r0, #0x1f\n"
+        "orr r0, #0x12\n"
+        "msr cpsr, r0\n"
+        "mov sp, %[svc_sp]\n"
+        "mrs r0, cpsr\n"
+        "orr r0, #0x1f\n"
+        "msr cpsr, r0\n"
+        :
+        :[svc_sp]"r"(svc_sp)
+        :"r0"
+    );
+}
+
+
 
 
 

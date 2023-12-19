@@ -110,7 +110,6 @@ void irq_clear_all() {
 void irq_handler() {
     int irq_num = rINTOFFSET;
 
-    log_printf("irq_num = %d\n", irq_num);
 
     irq_handler_call[irq_num]();
 }

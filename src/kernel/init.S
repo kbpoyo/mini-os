@@ -23,6 +23,11 @@ _exception_handler:
 
 
 _kernel_init:
+    //设置系统模式
+    mrs r0, cpsr
+    orr r0, #0x1f
+    msr cpsr, r0
+
     mov r0, #0
     mov r1, r0
     mov r2, r0
@@ -53,19 +58,46 @@ _irq_handler:
 
 
 task_switch_by_sp:
-    //保存cpu上下文环境, r0存储当前任务sp，r1存储目标任务sp
-    push {r1}
-    mrs r1, cpsr
-    sub r0, #4
-    str r1, [r0]
-    pop {r1}
-    sub r1, #64
-    stmia r0, {r0-r15}
+    //保存cpu上下文环境, r0执行的内存单元存储当任务的svc_sp，r1指向的内存单元存储目标任务svc_sp
+    //在当前任务的内核栈中保存上下文
+    push {lr}   //保存返回地址
+    stmfd sp, {r0-r14}^    //^:保护用户状态的下的r0-r14
+    nop //上一条指令后面不能紧跟访问备份寄存器的指令，最后跟一条nop
+    sub sp, #60
 
-    //切换任务栈空间
-    mov sp, r1
+    mrs r2, cpsr    //保存状态寄存器
+    push {r2}       
+
+    mrs r2, spsr    //保存状态备份寄存器
+    push {r2}
+
+    str sp, [r0]    //更新当前的svc_sp值
+
+    //切换栈空间
+    ldr sp, [r1]    //加载目标任务的svc_sp值
+
+
+
 
     //恢复新任务的cpu上下
-    pop {r1}
-    msr cpsr, r1
-    ldmfd sp!, {r0-r15}
+    pop {r0}
+    msr spsr, r0
+
+    //读取cpsr
+    pop {r0}
+
+    //中断位未置1,说明是任务第一次启动
+    tst r0, #0x80 
+    beq task_switch_to_start
+
+    msr cpsr, r0    
+
+    ldmfd sp, {r0-r14}^    //^:恢复用户模式的寄存器组
+    nop
+    add sp, #60
+    ldmfd sp!, {pc}  //恢复cpsr并执行之前即将执行的指令
+
+task_switch_to_start:
+    ldmfd sp, {r0-r14}^
+    add sp, #60
+    ldmfd sp!, {pc}^

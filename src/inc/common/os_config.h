@@ -32,6 +32,6 @@
 
 
 //定义任务时间片长度
-#define TASK_TIME_SLICE_MS 1 //ms，最大支持1.3107s
+#define TASK_TIME_SLICE_MS 10 //ms，最大支持1.3107s
 
 #endif
