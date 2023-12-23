@@ -15,6 +15,11 @@
             "miDebuggerPath": "/home/kbpoyo/opt/arm-linux-gdb/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gdb",
             "miDebuggerServerAddress": "192.168.3.5:2331",
             "targetArchitecture": "arm",
+            "stopAtConnect": true,
+            // "linux": {
+            //     "preLaunchTask": "调试准备", // 仅在windows下可自动运行
+            //     "miDebuggerPath": "/home/kbpoyo/opt/arm-linux-gdb/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gdb", // linux下的特殊配置
+            // },
             "customLaunchSetupCommands": [],
             "setupCommands": [
                 {

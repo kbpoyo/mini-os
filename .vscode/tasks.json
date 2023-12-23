@@ -3,6 +3,9 @@
         {
             "label": "启动JLinkGDBServer",
             "type": "shell",
+            "presentation": {
+              "reveal": "never"
+            },
             "linux": {
                 "command": "bash JLinkGDBServer-run.sh"
             },
@@ -31,6 +34,16 @@
             "options": {
                 "cwd": "${workspaceRoot}/script/"
             },
+            "problemMatcher": []
+        },
+        {
+            "label": "调试准备",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "下载bin文件",
+                "启动JLinkGDBServer"
+                
+            ],
             "problemMatcher": []
         }
     ],

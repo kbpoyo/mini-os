@@ -28,7 +28,7 @@ task_t* task_alloc(void) {
   task_t *task = (task_t*)0;
   for (int i = 0; i < TASK_COUNT; ++i) {
     task = task_table + i;
-    if (task->name[0] == '\0') {
+    if (task->pid == 0) {
       break;
     }
   }
@@ -39,7 +39,7 @@ task_t* task_alloc(void) {
     return 0;
   }
 
-  kernel_strcpy(task->name, "has alloced!");
+  task->pid = 0xffffffff;//标记已分配
 
   //解锁
   mutex_unlock(&task_table_lock);
@@ -72,7 +72,7 @@ static int registers_init(task_t *task, uint32_t entry, uint32_t sp, uint32_t fl
   sp_ptr[15] = (uint32_t)sp;//初始化sp指针
   sp_ptr[17] = entry; //初始化pc指针
 
-  task->svc_sp = (uint32_t)sp_ptr;
+  task->task_sp.irq_sp = (uint32_t)sp_ptr;
   // task->base_svc_sp = task->svc_sp;
   
 
@@ -107,7 +107,7 @@ int task_init(task_t *task, const char *name, uint32_t entry, uint32_t sp,
   task->state = TASK_CREATED;
   task->slice_max = task->slice_curr = TASK_TIME_SLICE_DEFAULT;
   task->sleep = 0;
-  // task->pid = (uint32_t)task;
+  task->pid = (uint32_t)task;
   // task->parent = (task_t *)0;
   // task->heap_start = task->heap_end = 0;
   // task->status = 0;
@@ -274,7 +274,7 @@ task_t *task_current(void) { return task_manager.curr_task; }
 
 
 
-extern void task_switch_by_sp(uint32_t* sp_from, uint32_t* sp_to);
+extern void task_switch_by_sp(task_sp_t* sp_from, task_sp_t* sp_to);
 
 /**
  * @brief  将任务从from切换到to
@@ -284,7 +284,7 @@ extern void task_switch_by_sp(uint32_t* sp_from, uint32_t* sp_to);
  */
 static void task_switch_from_to(task_t *from, task_t *to) {
   // 跳转到对应的tss段读取并恢复cpu任务状态
-  task_switch_by_sp(&(from->svc_sp), &(to->svc_sp));
+  task_switch_by_sp(&(from->task_sp), &(to->task_sp));
 }
 
 /**
@@ -416,3 +416,10 @@ void sys_sleep(uint32_t ms) {
 
   task_leave_protection(state);  // TODO:解锁
 }
+
+/**
+ * @brief 获取任务pid
+ *
+ * @return int pid
+ */
+int sys_getpid(void) { return task_current()->pid; }

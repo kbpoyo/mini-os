@@ -51,12 +51,20 @@ typedef enum _task_state_t {
 } state_t;
 
 
+#pragma pack(1)
+typedef struct  _task_sp_t {
+
+    uint32_t irq_sp;  //任务irq模式的内核栈空间
+    // uint32_t svc_sp;  //任务svc模式的内核栈空间
+}task_sp_t;
+
+#pragma pack()
 
 // 定义可执行任务的数据结构,即PCB进程控制块，书p406
 typedef struct _task_t {
   state_t state;            //任务状态
   // struct _task_t *parent;   //父进程控制块的地址
-  // int pid;                  //进程id
+  int pid;                  //进程id
   // int status;               //进程退出的状态值
 
   // uint32_t heap_start;      //进程堆空间的起始地址
@@ -72,11 +80,14 @@ typedef struct _task_t {
   list_node_t task_node;    // 用于插入任务队列的节点，标记task在任务队列中的位置
   list_node_t wait_node;   //用于插入信号量对象的等待队列的节点，标记task正在等待信号量
 
-  uint32_t svc_sp;  //任务的内核栈空间
+  task_sp_t task_sp;
+  
   // uint32_t base_svc_sp; //任务内核栈空间的初始值
   
 
 } task_t;
+
+
 
 typedef uint32_t cpu_state_t;
 
@@ -126,7 +137,7 @@ void task_start(task_t *task);
 // //系统调用函数
 void sys_sleep(uint32_t ms);
 // int sys_yield(void);
-// int sys_getpid(void);
+int sys_getpid(void);
 // int sys_fork(void);
 // int sys_execve(char *name, char * const *argv, char * const *env );
 // void sys_exit(int status);

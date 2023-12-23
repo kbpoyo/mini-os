@@ -160,7 +160,13 @@ _exc_handler_undef:
     bl _start
 
 _exc_handler_swi:
-    bl _start
+    stmfd sp!, {r0-r12, lr}
+    nop
+    mrs r0, spsr
+    push {r0}
+
+    ldr r0, =EXCEPTION_SWI
+    ldr pc, =KERNEL_ADDR
 
 _exc_handler_data_abort:
     bl _start
@@ -170,8 +176,19 @@ _exc_handler_prefetch_abort:
     
 
 _exc_handler_irq:
-    sub lr, lr, #4
-    stmfd sp!, {r0-r12, lr} //保存上下文
+    msr cpsr_c, 0x93    //进入svc模式，在内核栈中保存r0-r12,lr
+    sub sp, #4
+    stmfd sp!, {r0-r12, lr} //保存svc模式的lr,从而可以在svc模式下响应中断时，lr不被破坏
+    nop
+
+    msr cpsr_c, 0x92    //回到irq模式转移返回地址和spsr的值
+    sub r0, lr, #4
+    mrs r1, spsr
+
+    msr cpsr_c, 0x93    //再进入svc模式，在内核栈中保存返回地址，并设置svc模式的spsr
+    str r0, [sp, #56]
+    msr spsr, r1
+
     ldr r0, =EXCEPTION_IRQ
     ldr pc, =KERNEL_ADDR
 

@@ -12,6 +12,7 @@
         "task.h": "c",
         "cpu_instr.h": "c",
         "list.h": "c",
-        "sem.h": "c"
+        "sem.h": "c",
+        "lib_syscall.h": "c"
     }
 }

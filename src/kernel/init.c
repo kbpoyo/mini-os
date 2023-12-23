@@ -6,6 +6,7 @@
 #include "common/cpu_instr.h"
 #include "core/task.h"
 #include "tools/log.h"
+#include "applib/lib_syscall.h"
 void delay(uint32_t ms) {
     for (uint32_t i = 0; i < ms; i++) {
         for (uint32_t j = 0; j < 400; j++)
@@ -13,15 +14,15 @@ void delay(uint32_t ms) {
     }
 }
 
-
+uint32_t num __attribute__((section(".data"), aligned(16))) = 0;
 
 uint32_t stack_1[1024] __attribute__((section(".data"), aligned(16))) = {0};
 void task_test_1(void) {
 
     while (1) {
         
-        log_printf("task_1 runing!\n");
-        sys_sleep(1000);
+        log_printf("task_1 runing!, num = %d pid = 0x%x\n", num++, getpid());
+        msleep(1);
     }
     
 }
@@ -31,8 +32,8 @@ uint32_t stack_2[1024] __attribute__((section(".data"), aligned(16))) = {0};
 void task_test_2(void) {
      while (1) {
         
-        log_printf("task_2 runing!\n");
-        sys_sleep(1000);
+        log_printf("task_2 runing! num = %d pid = 0x%x\n", num++, getpid());
+        msleep(1);
     }
 }
 
@@ -66,7 +67,7 @@ int kernel_init() {
     
 
     while (1) {
-        sys_sleep(1000);
-        log_printf("rINTPND = %x rINTMSK = %x rEINTMSK = %x\n", rINTPND, rINTMSK, rEINTMASK);
+        msleep(1);
+        log_printf("rINTPND = %x rINTMSK = %x rEINTMSK = %x, num = %d pid = 0x%x\n", rINTPND, rINTMSK, rEINTMASK, num++, getpid());
     }
 }

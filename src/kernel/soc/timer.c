@@ -33,8 +33,6 @@ static void irq_handler_for_timer4() {
  */
 void timer_init() {
     
-    irq_handler_register(INT_TIMER4, irq_handler_for_timer4);
-    irq_enable(INT_TIMER4, NOSUBINT);
     
     rTCFG0 = rTCFG0_INIT;
     rTCFG1 = rTCGG1_INIT;
@@ -46,4 +44,7 @@ void timer_init() {
     rTCNTB4 = (uint32_t)(TASK_TIME_SLICE_MS * 1000) / TIMER_RESOLVING_POWER; 
     rTCON = HAND_REFLASH_4; //手动更新定时器4的计数器
     rTCON = AUTORELOAD_AND_START_4;   //关闭手动更新位,设置自动重载并打开定时器4
+
+    irq_handler_register(INT_TIMER4, irq_handler_for_timer4);
+    irq_enable(INT_TIMER4, NOSUBINT);
 }

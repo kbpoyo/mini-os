@@ -7,6 +7,7 @@
     .global _exception_handler
     .global task_switch_by_sp
     .extern irq_handler
+    .extern swi_handler
 
 
 
@@ -14,6 +15,9 @@ _exception_handler:
     
     cmp r0, #EXCEPTION_IRQ
     beq _irq_handler
+
+    cmp r0, #EXCEPTION_SWI
+    beq _swi_handler
    
    cmp r0, #EXCEPTION_RESET
    beq _kernel_init
@@ -49,11 +53,29 @@ _kernel_init:
 
 
 
+_swi_handler:
+    //打开中断
+    msr cpsr_c, #0x13
+
+    //传入系统调用栈帧
+    mov r0, sp
+    bl swi_handler
+
+    //关闭中断
+    msr cpsr_c, #0x93
+    //恢复cpu上下文
+    pop {r0}
+    msr spsr, r0
+    @ add sp, #4//弹出系统调用参数结构的地址
+    ldmfd sp!, {r0-r12, pc}^
+
+
+
 _irq_handler:
 
     bl irq_handler
     //恢复cpu上下文
-    ldmfd sp!, {r0-r12, pc}^
+    ldmfd sp!, {r0-r12,lr, pc}^
 
 
 
@@ -71,15 +93,14 @@ task_switch_by_sp:
     mrs r2, spsr    //保存状态备份寄存器
     push {r2}
 
-    str sp, [r0]    //更新当前的svc_sp值
-
+    //切换任务的irq_sp
+    str sp, [r0]    //更新当前的任务的sp值
     //切换栈空间
     ldr sp, [r1]    //加载目标任务的svc_sp值
 
 
 
-
-    //恢复新任务的cpu上下
+    //恢复新任务的cpu上下文
     pop {r0}
     msr spsr, r0
 
@@ -99,5 +120,6 @@ task_switch_by_sp:
 
 task_switch_to_start:
     ldmfd sp, {r0-r14}^
+    nop
     add sp, #60
     ldmfd sp!, {pc}^
