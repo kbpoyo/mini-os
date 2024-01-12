@@ -131,10 +131,10 @@ static void empty_task(void) {
   while (1) {
     // 停止cpu运行，让cpu等待时间中断
     
-    log_printf("empty task working!\n");
-    for (uint32_t i = 0; i < 1000/*ms*/; i++) {
-      for (uint32_t j = 0; j < 400; j++);
-    }
+    // log_printf("empty task working!\n");
+    // for (uint32_t i = 0; i < 1000/*ms*/; i++) {
+    //   for (uint32_t j = 0; j < 400; j++);
+    // }
   };
 }
 

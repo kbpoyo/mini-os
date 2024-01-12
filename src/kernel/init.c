@@ -21,19 +21,18 @@ void task_test_1(void) {
 
     while (1) {
         
-        log_printf("task_1 runing!, num = %d pid = 0x%x\n", num++, getpid());
-        msleep(1);
+        log_printf("task_1 runing!, num = %d\n", num++);
+        msleep(2000);
     }
     
 }
 
 uint32_t stack_2[1024] __attribute__((section(".data"), aligned(16))) = {0};
-
 void task_test_2(void) {
      while (1) {
         
-        log_printf("task_2 runing! num = %d pid = 0x%x\n", num++, getpid());
-        msleep(1);
+        log_printf("task_2 runing! num = %d\n", num++);
+        msleep(3000);
     }
 }
 
@@ -67,7 +66,8 @@ int kernel_init() {
     
 
     while (1) {
-        msleep(1);
-        log_printf("rINTPND = %x rINTMSK = %x rEINTMSK = %x, num = %d pid = 0x%x\n", rINTPND, rINTMSK, rEINTMASK, num++, getpid());
+        msleep(1000);
+        // log_printf("rINTPND = %x rINTMSK = %x rEINTMSK = %x, num = %d\n", rINTPND, rINTMSK, rEINTMASK, num++);
+        log_printf("first_task runing! num = %d\n", num++);
     }
 }

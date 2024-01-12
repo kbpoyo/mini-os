@@ -187,7 +187,7 @@ _exc_handler_irq:
 
     msr cpsr_c, 0x93    //再进入svc模式，在内核栈中保存返回地址，并设置svc模式的spsr
     str r0, [sp, #56]
-    msr spsr, r1
+    msr spsr, r1    //如果想打开中断嵌套，需要再保存一份spsr到内核栈中，这里我暂时不开中断嵌套
 
     ldr r0, =EXCEPTION_IRQ
     ldr pc, =KERNEL_ADDR
