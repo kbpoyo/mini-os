@@ -63,8 +63,8 @@
 #define rINTMOD     (*(volatile unsigned *)_rINTMOD)	//Interrupt mode control
 #define rINTMSK     (*(volatile unsigned *)_rINTMSK)	//Interrupt mask control
 #define rPRIORITY   (*(volatile unsigned *)_rPRIORITY)	//IRQ priority control
-#define rINTPND     (*(volatile unsigned *)_rINTPND)	//中断未决寄存器
-#define rINTOFFSET  (*(volatile unsigned *)_rINTOFFSET)	//Interruot request source offset
+#define rINTPND     (*(volatile unsigned *)_rINTPND)	//中断未决寄存器，仅有1位置1
+#define rINTOFFSET  (*(volatile unsigned *)_rINTOFFSET)	//中断偏移量寄存器，发生中断后记录当前发生的中断向量号
 #define rSUBSRCPND  (*(volatile unsigned *)_rSUBSRCPND)	//Sub source pending
 #define rINTSUBMSK  (*(volatile unsigned *)_rINTSUBMSK)	//Interrupt sub mask
 

@@ -32,7 +32,7 @@
 
 //外部中断
 #define EINT8_23    5
-#define EINT4_27    4
+#define EINT4_7    4
 #define EINT8_PRIM  EINT8_23
 #define EINT8_SUB   8
 #define EINT11_PRIM EINT8_23

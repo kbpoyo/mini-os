@@ -19,7 +19,7 @@ void irq_enable(int irq_num_prim, int irq_num_sub) {
     }
 
     if (irq_num_sub >= 0) {
-        if (irq_num_prim == EINT4_27 || irq_num_prim == EINT8_23) {  // 使能外部中断屏蔽寄存器
+        if (irq_num_prim == EINT4_7 || irq_num_prim == EINT8_23) {  // 使能外部中断屏蔽寄存器
             rEINTMASK = ((~(1 << irq_num_sub)) & rEINTMASK);
         } else {  // 使能次中断源屏蔽寄存器
             rINTSUBMSK = ((~(1 << irq_num_sub)) & rINTSUBMSK);
@@ -39,7 +39,7 @@ void irq_disable(int irq_num_prim, int irq_num_sub) {
     }
 
     if (irq_num_sub >= 0) {
-        if (irq_num_prim == EINT4_27 || irq_num_prim == EINT8_23) {
+        if (irq_num_prim == EINT4_7 || irq_num_prim == EINT8_23) {
             rEINTMASK = ((1 << irq_num_sub) | rEINTMASK);  // 操作外部中断屏蔽寄存器
         } else {                                           // 操作次中断源屏蔽寄存器
             rINTSUBMSK = ((1 << irq_num_sub) | rINTSUBMSK);
@@ -74,14 +74,14 @@ void irq_disable_all() {
  */
 void irq_clear(int irq_num_prim, int irq_num_sub) {
     if (irq_num_sub >= 0) {
-        if (irq_num_prim == EINT4_27 || irq_num_prim == EINT8_23) {
+        if (irq_num_prim == EINT4_7 || irq_num_prim == EINT8_23) {//清楚外部中断挂起寄存器的相应位
             rEINTPEND = ((1 << irq_num_sub) & rEINTPEND);
-        } else {
+        } else {//清除次级中断源挂起寄存器的相应位
             rSUBSRCPND = ((1 << irq_num_sub) & rSUBSRCPND);
         }
     }
 
-    if (irq_num_prim >= 0) {
+    if (irq_num_prim >= 0) {    //清除主中断源挂起寄存器和挂起寄存器
         rSRCPND = ((1 << irq_num_prim) & rSRCPND);
         rINTPND = ((1 << irq_num_prim) & rINTPND);
     }
