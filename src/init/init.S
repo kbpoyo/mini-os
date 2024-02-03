@@ -1,6 +1,6 @@
 
 #include "common/register_addr.h"
-    
+#include "common/os_config.h" 
     .text
     .global _start
 
@@ -20,7 +20,7 @@ _exc_handler_reset:
     //调试用，确保当前为特权模式
     mrs r0, cpsr
     bic r0, #0x1f
-    orr r0, #0x13
+    orr r0, #CPU_MODE_SVC
     msr cpsr, r0
 
     //1.关闭看门狗
@@ -123,27 +123,27 @@ _init_stack:
 
     mrs r0, cpsr
     bic r0, #0x1f
-    orr r0, #0x11   //将当前状态设置为FIQ模式，并初始化栈空间
+    orr r0, #CPU_MODE_FIQ   //将当前状态设置为FIQ模式，并初始化栈空间
     msr cpsr, r0
     ldr sp, =STACK_ADDR_FIQ
 
     bic r0, #0x1f
-    orr r0, #0x12
+    orr r0, #CPU_MODE_IRQ
     msr cpsr, r0    //将当前状态设置为IRQ模式，并初始化栈空间
     ldr sp, =STACK_ADDR_IRQ 
 
     bic r0, #0x1f
-    orr r0, #0x17    //将当前状态设置为Abort模式，并初始化栈空间
+    orr r0, #CPU_MODE_ABT    //将当前状态设置为Abort模式，并初始化栈空间
     msr cpsr, r0
     ldr sp, =STACK_ADDR_ABORT
 
     bic r0, #0x1f
-    orr r0, #0x1b    //将当前状态设置为UND模式，并初始化栈空间
+    orr r0, #CPU_MODE_UND    //将当前状态设置为UND模式，并初始化栈空间
     msr cpsr, r0
     ldr sp, =STACK_ADDR_UND
 
     bic r0, #0x1f
-    orr r0, #0x1f    //将当前状态设置为SYS或者USER模式，并初始化栈空间
+    orr r0, #CPU_MODE_SYS    //将当前状态设置为SYS或者USER模式，并初始化栈空间
     msr cpsr, r0
     ldr sp, =STACK_ADDR_SYS_AND_USER
 
@@ -176,16 +176,16 @@ _exc_handler_prefetch_abort:
     
 
 _exc_handler_irq:
-    msr cpsr_c, 0x93    //进入svc模式，在内核栈中保存r0-r12,lr
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)    //进入svc模式，在内核栈中保存r0-r12,lr
     sub sp, #4
     stmfd sp!, {r0-r12, lr} //保存svc模式的lr,从而可以在svc模式下响应中断时，lr不被破坏
     nop
 
-    msr cpsr_c, 0x92    //回到irq模式转移返回地址和spsr的值
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_IRQ)    //回到irq模式转移返回地址和spsr的值
     sub r0, lr, #4
     mrs r1, spsr
 
-    msr cpsr_c, 0x93    //再进入svc模式，在内核栈中保存返回地址，并设置svc模式的spsr
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)    //再进入svc模式，在内核栈中保存返回地址，并设置svc模式的spsr
     str r0, [sp, #56]
     msr spsr, r1    //如果想打开中断嵌套，需要再保存一份spsr到内核栈中，这里我暂时不开中断嵌套
 

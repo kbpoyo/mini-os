@@ -29,7 +29,7 @@ _exception_handler:
 _kernel_init:
     //设置系统模式
     mrs r0, cpsr
-    orr r0, #0x1f
+    orr r0, #CPU_MODE_SYS
     msr cpsr, r0
 
     mov r0, #0
@@ -55,18 +55,17 @@ _kernel_init:
 
 _swi_handler:
     //打开中断
-    msr cpsr_c, #0x13
+    msr cpsr_c, #CPU_MODE_SVC
 
     //传入系统调用栈帧
     mov r0, sp
     bl swi_handler
 
     //关闭中断
-    msr cpsr_c, #0x93
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)
     //恢复cpu上下文
     pop {r0}
     msr spsr, r0
-    @ add sp, #4//弹出系统调用参数结构的地址
     ldmfd sp!, {r0-r12, pc}^
 
 
@@ -80,7 +79,7 @@ _irq_handler:
 
 
 task_switch_by_sp:
-    //保存cpu上下文环境, r0执行的内存单元存储当任务的svc_sp，r1指向的内存单元存储目标任务svc_sp
+    //保存cpu上下文环境, r0指向的内存单元存储当前任务的svc_sp，r1指向的内存单元存储目标任务svc_sp
     //在当前任务的内核栈中保存上下文
     push {lr}   //保存返回地址
     stmfd sp, {r0-r14}^    //^:保护用户状态的下的r0-r14

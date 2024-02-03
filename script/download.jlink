@@ -1,3 +1,4 @@
 r
 loadbin ../bin/kernel.bin 0x30000000
-quit
+
+//quit

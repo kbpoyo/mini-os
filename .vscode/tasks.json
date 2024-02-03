@@ -4,7 +4,7 @@
             "label": "启动JLinkGDBServer",
             "type": "shell",
             "presentation": {
-              "reveal": "never"
+                "reveal": "never"
             },
             "linux": {
                 "command": "bash JLinkGDBServer-run.sh"
@@ -41,8 +41,7 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "下载bin文件",
-                "启动JLinkGDBServer"
-                
+                "启动JLinkGDBServer",
             ],
             "problemMatcher": []
         }

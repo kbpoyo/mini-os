@@ -13,7 +13,8 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "/home/kbpoyo/opt/arm-linux-gdb/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gdb",
-            "miDebuggerServerAddress": "192.168.3.5:2331",
+            // "miDebuggerServerAddress": "192.168.3.5:2331",
+            "miDebuggerServerAddress": "192.168.3.4:2331",
             "targetArchitecture": "arm",
             "stopAtConnect": true,
             // "linux": {
@@ -28,9 +29,8 @@
                     "ignoreFailures": true
                 },
             ],
-
             // gdb连接后的设置
-            "postRemoteConnectCommands": [ 
+            "postRemoteConnectCommands": [
                 {
                     "text": "load",
                     "description": "download file to MCU",
@@ -41,7 +41,6 @@
                     "text": "add-symbol-file ./image/kernel.elf 0x30000000",
                     "ignoreFailures": false
                 },
-        
                 // {
                 //     "text": "b main",
                 //     "description": "set breakpoints at main",
