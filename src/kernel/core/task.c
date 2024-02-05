@@ -1,10 +1,11 @@
-#include "common/cpu_instr.h"
 #include "core/task.h"
+
+#include "common/cpu_instr.h"
 #include "common/os_config.h"
-#include "tools/klib.h"
 #include "core/irq.h"
-#include "tools/log.h"
 #include "ipc/mutex.h"
+#include "tools/klib.h"
+#include "tools/log.h"
 
 // 定义全局唯一的任务管理器对象
 static task_manager_t task_manager;
@@ -13,19 +14,18 @@ static task_t task_table[TASK_COUNT];
 // 定义用于维护task_table的互斥锁
 static mutex_t task_table_lock;
 
-
-static uint32_t stack_task[4096] __attribute__((section(".data"))) = {0} ;
+static uint32_t stack_task[4096] __attribute__((section(".data"))) = {0};
 uint32_t stack_index __attribute__((section(".data"))) = 1024;
 
 /**
  * @brief 分配task任务结构
- * 
- * @return task_t* 
+ *
+ * @return task_t*
  */
-task_t* task_alloc(void) {
-  //加锁
+task_t *task_alloc(void) {
+  // 加锁
   mutex_lock(&task_table_lock);
-  task_t *task = (task_t*)0;
+  task_t *task = (task_t *)0;
   for (int i = 0; i < TASK_COUNT; ++i) {
     task = task_table + i;
     if (task->pid == 0) {
@@ -33,15 +33,15 @@ task_t* task_alloc(void) {
     }
   }
 
-  if (task == (task_t*)0 || task >= task_table + TASK_COUNT) {
-    //解锁
+  if (task == (task_t *)0 || task >= task_table + TASK_COUNT) {
+    // 解锁
     mutex_unlock(&task_table_lock);
     return 0;
   }
 
-  task->pid = 0xffffffff;//标记已分配
+  task->pid = 0xffffffff;  // 标记已分配
 
-  //解锁
+  // 解锁
   mutex_unlock(&task_table_lock);
 
   return task;
@@ -49,35 +49,39 @@ task_t* task_alloc(void) {
 
 /**
  * @brief 初始化寄存器组
- * 
- * @param task 
- * @param entry 
- * @param sp 
- * @param flag 
- * @return int 
+ *
+ * @param task
+ * @param entry
+ * @param sp
+ * @param flag
+ * @return int
  */
-static int registers_init(task_t *task, uint32_t entry, uint32_t sp, uint32_t flag) {
-  //在sp对应的栈空间中将寄存器组压入栈中
-  if (entry <= 0 || sp <= 0) return 0; //调试用
+static int registers_init(task_t *task, uint32_t entry, uint32_t sp,
+                          uint32_t flag) {
+  // 在sp对应的栈空间中将寄存器组压入栈中
+  if (entry <= 0 || sp <= 0) return 0;  // 调试用
 
-  
-  uint32_t* sp_ptr = stack_task + stack_index;
+  uint32_t *sp_ptr = stack_task + stack_index;
   stack_index += 1024;
-  sp_ptr -= 18; //为17个寄存器分配空间
+  sp_ptr -= 18;  // 为18个寄存器分配空间，r0-r12，sp,lr,pc,cpsr,spsr
   kernel_memset(sp_ptr, 0, 18 * 4);
 
-  //sp_ptr[0] = spsr, [1] = cpsr, .... [17] = r15  
-  sp_ptr[0] = flag == TASK_FLAGS_USER ? TASK_CPSR_USER : TASK_CPSR_SYS; //初始化用户模式时的cpsr
-  sp_ptr[1] = flag == TASK_FLAGS_USER ? TASK_CPSR_USER : TASK_CPSR_SYS; //初始化用户模式时的cpsr
-  sp_ptr[15] = (uint32_t)sp;//初始化sp指针
-  sp_ptr[17] = entry; //初始化pc指针
+  // sp_ptr[0] = spsr, [1] = cpsr, .... [17] = r15
+  sp_ptr[0] =
+      flag == TASK_FLAGS_USER
+          ? TASK_CPSR_USER
+          : TASK_CPSR_SYS;  // 初始化用户模式时的spsr，新任务执行使，spsr会传入给cpsr
+  sp_ptr[1] = flag == TASK_FLAGS_USER
+                  ? TASK_CPSR_USER
+                  : TASK_CPSR_SYS;  // 初始化用户模式时的cpsr
+  sp_ptr[15] = (uint32_t)sp;        // 初始化sp指针
+  sp_ptr[17] = entry;               // 初始化pc指针
 
-  task->task_sp.irq_sp = (uint32_t)sp_ptr;
+  task->task_sp.svc_sp = (uint32_t)sp_ptr;
   // task->base_svc_sp = task->svc_sp;
-  
 
-  return 0;  
-} 
+  return 0;
+}
 
 /**
  * @brief  初始化任务
@@ -91,7 +95,7 @@ static int registers_init(task_t *task, uint32_t entry, uint32_t sp, uint32_t fl
 int task_init(task_t *task, const char *name, uint32_t entry, uint32_t sp,
               uint32_t flag) {
   ASSERT(task != (task_t *)0);
-  // 1.初始化任务TSS段
+  // 1.初始化任务的初始寄存器状态
   int err = registers_init(task, entry, sp, flag);
   if (err == -1) return err;
 
@@ -130,7 +134,7 @@ static uint32_t empty_task_stack[EMPTY_TASK_STACK_SIZE];
 static void empty_task(void) {
   while (1) {
     // 停止cpu运行，让cpu等待时间中断
-    
+
     // log_printf("empty task working!\n");
     // for (uint32_t i = 0; i < 1000/*ms*/; i++) {
     //   for (uint32_t j = 0; j < 400; j++);
@@ -143,7 +147,6 @@ static void empty_task(void) {
  *
  */
 void task_manager_init(void) {
-
   // 1.初始化所有任务队列
   list_init(&task_manager.ready_list);
   list_init(&task_manager.task_list);
@@ -159,7 +162,7 @@ void task_manager_init(void) {
 
   // 5.初始化静态任务表,及其互斥锁
   kernel_memset(task_table, 0, sizeof(task_table));
-  mutex_init(&task_table_lock); 
+  mutex_init(&task_table_lock);
 }
 
 /**
@@ -168,41 +171,33 @@ void task_manager_init(void) {
  * @param task
  */
 void task_start(task_t *task) {
-  cpu_state_t state = task_enter_protection();  // TODO:加锁
-
-  //将任务设置为就绪态
+  // 将任务设置为就绪态
   task_set_ready(task);
-  task->state = TASK_READY;
-
-  task_leave_protection(state);  // TODO:解锁
 }
-
 
 /**
  * @brief  初始化第一个任务
  *
  */
 void task_first_init(void) {
-      //1.初始化任务，当前任务是在任务管理器启用前就执行的，
-      //拥有自己的栈空间，所以入口地址直接和栈空间都置0即可
-      //这一步只是为当前任务绑定一个TSS段并将其绑定到一个task对象
-      task_init(&task_manager.first_task, "first task", 0, 0, 0);
+  // 1.初始化任务，当前任务是在任务管理器启用前就执行的，
+  // 拥有自己的栈空间，所以入口地址直接和栈空间都置0即可
+  // 这一步只是为当前任务绑定一段空间用于储存寄存器组，并将其绑定到一个task对象
+  task_init(&task_manager.first_task, "first task", 0, 0, 0);
 
+  // 3.将当前任务执行第一个任务
+  task_manager.curr_task = &task_manager.first_task;
 
-      //3.将当前任务执行第一个任务
-      task_manager.curr_task = &task_manager.first_task;
+  // 4.将当前任务状态设置为运行态
+  task_start(task_manager.curr_task);
 
-      //4.将当前任务状态设置为运行态
-      task_manager.curr_task->state = TASK_RUNNING;
-
-      task_start(task_manager.curr_task);
+  task_manager.curr_task->state = TASK_RUNNING;
 }
-
 
 /**
  * @brief 进入临界保护区，使用关中断的方式进行保护
- * 
- * @return uint32_t 
+ *
+ * @return uint32_t
  */
 uint32_t task_enter_protection(void) {
   uint32_t state = cpu_get_cpser();
@@ -210,16 +205,12 @@ uint32_t task_enter_protection(void) {
   return state;
 }
 
-
 /**
  * @brief 离开临界保护区
- * 
- * @param state 
+ *
+ * @param state
  */
-void task_leave_protection(uint32_t state) {
-  cpu_set_cpsr(state);
-}
-
+void task_leave_protection(uint32_t state) { cpu_set_cpsr(state); }
 
 /**
  * @brief  获取当前任务管理器的第一个任务
@@ -236,11 +227,16 @@ task_t *task_first_task(void) { return &task_manager.first_task; }
 void task_set_ready(task_t *task) {
   ASSERT(task != (task_t *)0);
   // if (task == (task_t*)0) return;
+  cpu_state_t state = task_enter_protection();
+
   // 1.将任务插入到就绪队列的尾部
   list_insert_last(&task_manager.ready_list, &task->ready_node);
+  task->state = TASK_READY;
+
+  task_leave_protection(state);
 
   // 2.将任务状态设置为就绪态
-  //task->state = TASK_READY;
+  // task->state = TASK_READY;
 }
 
 /**
@@ -251,7 +247,11 @@ void task_set_ready(task_t *task) {
 void task_set_unready(task_t *task) {
   ASSERT(task != (task_t *)0);
   // if (task == (task_t*)0) return;
+  cpu_state_t state = task_enter_protection();
+
   list_remove(&task_manager.ready_list, &task->ready_node);
+
+  task_leave_protection(state);
 }
 
 /**
@@ -271,10 +271,7 @@ task_t *task_ready_first(void) {
  */
 task_t *task_current(void) { return task_manager.curr_task; }
 
-
-
-
-extern void task_switch_by_sp(task_sp_t* sp_from, task_sp_t* sp_to);
+extern void task_switch_by_sp(task_sp_t *sp_from, task_sp_t *sp_to);
 
 /**
  * @brief  将任务从from切换到to
@@ -310,7 +307,7 @@ void task_switch(void) {
     to->state = TASK_RUNNING;
     if (from->state == TASK_RUNNING) {
       from->state = TASK_READY;
-    } 
+    }
     task_manager.curr_task = to;
 
     // 6.进行任务切换
@@ -329,9 +326,13 @@ void task_set_sleep(task_t *task, uint32_t slice) {
   ASSERT(task != (task_t *)0);
   if (slice == 0) return;
 
+  cpu_state_t state = task_enter_protection();
+
   task->sleep = slice;
   task->state = TASK_SLEEP;
   list_insert_last(&task_manager.sleep_list, &task->ready_node);
+
+  task_leave_protection(state);
 }
 
 /**
@@ -341,8 +342,13 @@ void task_set_sleep(task_t *task, uint32_t slice) {
  */
 void task_set_wakeup(task_t *task) {
   ASSERT(task != (task_t *)0);
+
+  cpu_state_t state = task_enter_protection();
+
   list_remove(&task_manager.sleep_list, &task->ready_node);
   task->state = TASK_CREATED;
+
+  task_leave_protection(state);
 }
 
 /**
@@ -406,7 +412,8 @@ void sys_sleep(uint32_t ms) {
   task_set_unready(curr_task);
 
   // 3.计算出需要延时的时间片数，对时间片数向上取整，保证进程至少能延时指定时间
-  uint32_t slice = (ms + (TASK_TIME_SLICE_DEFAULT - 1)) / TASK_TIME_SLICE_DEFAULT;
+  uint32_t slice =
+      (ms + (TASK_TIME_SLICE_DEFAULT - 1)) / TASK_TIME_SLICE_DEFAULT;
 
   // 4.将当前任务放入延时队列，并设置延时时间片数
   task_set_sleep(curr_task, slice);
@@ -423,3 +430,27 @@ void sys_sleep(uint32_t ms) {
  * @return int pid
  */
 int sys_getpid(void) { return task_current()->pid; }
+
+/**
+ * @brief  使当前正在运行的任务主动让出cpu
+ */
+void sys_yield(void) {
+  cpu_state_t state = task_enter_protection();  // TODO:加锁
+
+  // 1.判断当前就绪队列中是否有多个任务
+  if (list_get_size(&task_manager.ready_list) > 1) {
+    // 2.获取当前任务
+    task_t *curr_task = task_current();
+
+    // 3.将当前任务从就绪队列中取下
+    task_set_unready(curr_task);
+
+    // 4.将当前任务重新加入到就绪队列的队尾
+    task_set_ready(curr_task);
+
+    // 5.任务管理器运行下一个任务，从而释放cpu使用权
+    task_switch();
+  }
+
+  task_leave_protection(state);  // TODO:解锁
+}

@@ -29,6 +29,7 @@ _exception_handler:
 _kernel_init:
     //设置系统模式
     mrs r0, cpsr
+    bic r0, #0x1f
     orr r0, #CPU_MODE_SYS
     msr cpsr, r0
 
@@ -93,7 +94,7 @@ task_switch_by_sp:
     push {r2}
 
     //切换任务的irq_sp
-    str sp, [r0]    //更新当前的任务的sp值
+    str sp, [r0]    //更新当前的任务的svc_sp值
     //切换栈空间
     ldr sp, [r1]    //加载目标任务的svc_sp值
 
@@ -115,10 +116,10 @@ task_switch_by_sp:
     ldmfd sp, {r0-r14}^    //^:恢复用户模式的寄存器组
     nop
     add sp, #60
-    ldmfd sp!, {pc}  //恢复cpsr并执行之前即将执行的指令
+    ldmfd sp!, {pc}  //切换完毕，返回调用者处的下一条待执行指令处执行
 
 task_switch_to_start:
     ldmfd sp, {r0-r14}^
     nop
     add sp, #60
-    ldmfd sp!, {pc}^
+    ldmfd sp!, {pc}^ //新任务执行，将spsr传入cpsr

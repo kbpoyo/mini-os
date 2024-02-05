@@ -19,8 +19,11 @@ uint32_t num __attribute__((section(".data"), aligned(16))) = 0;
 uint32_t stack_1[1024] __attribute__((section(".data"), aligned(16))) = {0};
 void task_test_1(void) {
   while (1) {
-    log_printf("task_1 runing!, num = %d\n", num++);
-    msleep(10);
+    if (num <= 1000) {
+      yield();
+    }
+    log_printf("task_1 runing!, TTTT num = %d\n", num++);
+    // msleep(1000);
   }
 }
 
@@ -28,7 +31,7 @@ uint32_t stack_2[1024] __attribute__((section(".data"), aligned(16))) = {0};
 void task_test_2(void) {
   while (1) {
     log_printf("task_2 runing! num = %d\n", num++);
-    msleep(10);
+    // msleep(1000);
   }
 }
 
@@ -61,7 +64,7 @@ int kernel_init() {
   timer_init();
 
   while (1) {
-    msleep(10);
+    // msleep(1000);
     // log_printf("rINTPND = %x rINTMSK = %x rEINTMSK = %x, num = %d\n",
     // rINTPND, rINTMSK, rEINTMASK, num++);
     log_printf("first_task runing! num = %d\n", num++);
