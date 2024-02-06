@@ -30,7 +30,7 @@ _kernel_init:
     //设置系统模式
     mrs r0, cpsr
     bic r0, #0x1f
-    orr r0, #CPU_MODE_SYS
+    orr r0, #(CPU_MASK_IRQ | CPU_MODE_SYS)
     msr cpsr, r0
 
     mov r0, #0
