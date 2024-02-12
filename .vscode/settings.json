@@ -13,6 +13,9 @@
         "cpu_instr.h": "c",
         "list.h": "c",
         "sem.h": "c",
-        "lib_syscall.h": "c"
+        "lib_syscall.h": "c",
+        "mmu.h": "c",
+        "memory.h": "c",
+        "boot_info.h": "c"
     }
 }

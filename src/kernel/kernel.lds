@@ -31,8 +31,9 @@ SECTIONS {/*SECTIONS必须大写*/
     .bss : {
         *(.bss)
     }
-    . = ALIGN(4096);
+    . = ALIGN(1024);
     PROVIDE(e_data = .);
+    PROVIDE(mem_kernel_end = .);
  
  }
 

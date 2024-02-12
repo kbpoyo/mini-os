@@ -1,160 +1,58 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-// TODO:等后续做缺页异常处理，
-//      进行内存和磁盘之间的页面调度时
-//       再控制Cr8寄存器进行快表内容的使无效
+#include "common/os_config.h"
+#include "tools/bitmap.h"
 
-/**
- * 协处理器cr0(只读)的cache标识符为0xd172172
- * [28:25] = 0b0110:
- *      cache类型为：写回类型
- *      cache内容的清除方法：用寄存器cr7定义
- *      cache内容锁定方法：支持格式A
- * [23:12] = 0x172(数据cache的属性):
- *      块大小：32字节
- *      M: 0
- *      cache容量：16kb
- *      cache相关属性：64路相关
- *
- * [11:0] = 0x172(指令cache的属性):
- *      块大小：32字节
- *      M: 0
- *      cache容量：16kb
- *      cache相关属性：64路相关
- *
- */
+// 低1mb内存空间
+#define MEM_EXT_START (KERNEL_ADDR + 1024 * 1024)
+#define MEM_PAGE_SIZE 1024
+// 真正给操作系统的物理内存空间的结束地址, mini2440只有64mb
+#define MEM_EXT_END (SDRAM_START + SDRAM_SIZE)
+// 虚拟空间中，用户进程的起始地址设置为 0x8000 0000,
+// 以下的空间映射给操作系统使用,即2GB
+#define MEM_TASK_BASE 0x80000000
+// 定义应用程序的栈空间起始地址的虚拟地址,即给每个进程分配了1.5gb的虚拟空间大小
+#define MEM_TASK_STACK_TOP (0xE0000000)
+// 定义每个应用程序的栈空间大小为50页
+#define MEM_TASK_STACK_SIZE (MEM_PAGE_SIZE * 50)
+// 定义分配给每个应用程序的入口参数的空间大小
+#define MEM_TASK_ARG_SIZE (MEM_PAGE_SIZE * 4)
 
-// 定义cr1寄存器的位域
-#define CR1_MMU_ENABEL (0x1 << 0)           // 使能mmu
-#define CR1_DATA_CACHE_ENABLE (0x1 << 2)    // 使能数据cacahe
-#define CR1_INSTR_CACHE_ENABLE (0x1 << 12)  // 使能指令cache
+// 内存分配对象
+typedef struct _addr_alloc_t {
+  mutex_t mutex;       // 分配内存时进行临界资源管理
+  bitmap_t bitmap;     // 管理内存页的位图结构
+  uint32_t start;      // 管理内存区域的起始地址
+  uint32_t size;       // 内存区域的大小
+  uint32_t page_size;  // 页的大小
+  uint8_t page_ref
+      [(MEM_EXT_END - MEM_EXT_START) /
+       MEM_PAGE_SIZE];  // TODO,由于引用计数占用空间较大，经计算，在1mb一下加载内核，管理内存大小不能超过1gb
 
-// 定义cr3寄存器的位域
-#define CR3_D0 (1 << 0)  // 将D0域的权限控制设置为只由页表项的AP位确定
+} addr_alloc_t;
 
-/**
- * 映射关系为：
- *      4GB = 4096x1mb(4096个页目录项)
- *      1MB = 1024x1kb(1024个页表项)
- *
- *所有空间都映射到cr3寄存器的0号域
- */
+// 定义内存映射的数据结构
+typedef struct _memory_map_t {
+  void *vstart;        // 虚拟地址空间的起始地址
+  void *vend;          // 虚拟地址空间的结束地址
+  void *pstart;        // 物理地址空间的起始地址
+  uint32_t privilege;  // 该映射段的特权级，用户或者内核
+} memory_map_t;
 
-#define PDE_CNT \
-  4096  // 页目录项的个数,一个页目录表映射整个4gb空间大小，每个页目录项映射1mb空间大小，所以需要4096个页目录项
-#define PTE_CNT \
-  1024  // 页表录项的个数,每个二级页表映射1mb的空间大小，每个页表项4字节，映射1kb空间大小,所以需要1024个页表项
+// void memory_init(boot_info_t *boot_info);
+// uint32_t memory_creat_uvm(void);
+// int memory_copy_uvm(uint32_t to_page_dir, uint32_t from_page_dir);
+// void memory_destroy_uvm(uint32_t page_dir);
+// int memory_alloc_for_page_dir(uint32_t page_dir, uint32_t vaddr, uint32_t
+// alloc_size, uint32_t privilege); uint32_t memory_get_paddr(uint32_t page_dir,
+// uint32_t vaddr);
 
-// 定义页目录项相关的宏(细粒度二级页表)
-#define PDE_FLAG \
-  (3 << 0)  // 页目录项标识符，标志对应的为细粒度二级页表即1024x1kb
+// int memory_alloc_page_for(uint32_t vaddr, uint32_t alloc_size, uint32_t
+// priority); uint32_t memory_alloc_page(); void memory_free_page(uint32_t
+// addr); int memory_copy_uvm_data(uint32_t to_vaddr, uint32_t to_page_dir,
+// uint32_t from_vaddr, uint32_t size);
 
-// 域标识符，标识页目录项所对应的1mb虚拟空间所在域,我就把所有空间放在0号域
-#define PDE_DOMAIN (0 << 5)
-
-// 定义页表项相关的宏(极小页1kb)
-#define PTE_FLAG (3 << 0)  // 页标识符，极小页1kb为0b11
-#define PTE_B (1 << 2)     // 页的写缓冲使能位
-#define PTE_C (1 << 3)     // 页的cache使能位
-// 页的访问权限控制位
-#define PTE_AP_SYS (1 << 4)  // 只能特权级模式访问
-#define PTE_AP_USR (3 << 4)  // 用户与特权模式都可访问
-
-#pragma pack(1)
-
-// csapp p578
-// 定义页目录项PDE结构的联合体
-typedef union _pde_t {
-  uint32_t v;
-  struct {
-    uint32_t
-        flag : 2;  // 页目录项标识位，标识二级页表类型，我只用了细粒度二级页表(0b11)
-    uint32_t user_defing : 3;   // 用户自定义位
-    uint32_t domain : 4;        // 本页目录项对应的1mb空间所属域
-    uint32_t invalid_hold : 3;  // 无效保留位
-    uint32_t phy_pt_addr : 20;  // 高20位，页表的物理地址
-  };
-
-} pde_t;
-
-// 定义页表项PTE结构的联合体
-typedef union _pte_t {
-  uint32_t v;
-  struct {
-    uint32_t flag : 2;  // flag标识位，标识页的类型，我只使用极小页(0b11)
-    uint32_t write_buffer_enable : 1;  // 写缓冲使能位
-    uint32_t cache_enable : 1;         // cache使能位
-    uint32_t access_perm : 2;          // 访问权限控制位
-    uint32_t invalid_hold : 4;         // 无效保留位
-    uint32_t phy_page_addr : 22;       // 高22位，页的物理地址
-  };
-
-} pte_t;
-
-#pragma pack()
-
-/**
- * @brief 获取虚拟地址的高10位，及对应的页目录项在页目录表中的索引
- *
- * @param vstart
- * @return uint32_t
- */
-static inline uint32_t pde_index(uint32_t vstart) { return (vstart >> 22); }
-
-/**
- * @brief 获取虚拟地址的次10位，及对应的页表项在页表中的索引
- *
- * @param vstart
- * @return uint32_t
- */
-static inline uint32_t pte_index(uint32_t vstart) {
-  return (vstart >> 12) & 0x3ff;
-}
-
-/**
- * @brief 获取页目录项中对应的页表的起始地址，及该页表第一个页表项的地址
- *
- * @param pde 页目录项
- * @return uint32_t 返回的页表的地址
- */
-static inline uint32_t pde_to_pt_addr(pde_t *pde) {
-  // 高20位为页表的物理地址的有效位，将其左移12位，及按4kb对齐后才是该页的物理地址
-  return pde->phy_pt_addr << 12;
-}
-
-/**
- * @brief 获取页表项中对应的页的起始地址
- *
- * @param pte 页表项
- * @return uint32_t 返回的页的地址
- */
-static inline uint32_t pte_to_pg_addr(pte_t *pte) {
-  // 高20位为页的物理地址有效位，将其左移12位，及按4kb对齐后才是该页的物理地址
-  return pte->phy_page_addr << 12;
-}
-
-/**
- * @brief 获取页表项的权限
- *
- * @param pte
- * @return uint32_t
- */
-static inline uint32_t get_pte_privilege(pte_t *pte) {
-  return pte->v & 0x1ff;  // 直接获取低9位即为所有权限
-}
-
-/**
- * @brief 设置页目录表的起始地址，将起始地址写入CR3寄存器
- *
- * @param paddr 页目录表的物理起始地址
- */
-static inline void mmu_set_page_dir(uint32_t paddr) {
-  // 设置cr3寄存器的高20位为页目录表的地址，因为按4kb对齐，所以
-  // 页目录表的起始地址page_dir的高20位才为有效位，低12位为0，将cr3的低12位就设置为0
-  write_cr3(paddr);
-}
-
-void enable_mmu();
+// char *sys_sbrk(int incr);
 
 #endif

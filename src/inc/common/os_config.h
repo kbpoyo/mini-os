@@ -19,8 +19,12 @@
 #define OS_HCLK (OS_FCLK / 4)
 #define OS_PCLK (OS_HCLK / 2)
 
+// SDRAM起始地址与大小
+#define SDRAM_START 0x30000000
+#define SDRAM_SIZE (64 * 1024 * 1024)
+
 // 内核加载地址
-#define KERNEL_ADDR 0x30000000
+#define KERNEL_ADDR SDRAM_START
 
 // 异常处理函数的索引号,用于在内核的异常向量处理接口中索引异常处理方法
 #define EXCEPTION_RESET 0

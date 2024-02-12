@@ -72,5 +72,5 @@ int kernel_init() {
 
   // cpu_irq_start();
 
-  enable_mmu();
+  // enable_mmu();
 }
