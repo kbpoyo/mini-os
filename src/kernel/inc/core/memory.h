@@ -2,11 +2,12 @@
 #define MEMORY_H
 
 #include "common/os_config.h"
+#include "core/mmu.h"
+#include "ipc/mutex.h"
 #include "tools/bitmap.h"
 
 // 低1mb内存空间
 #define MEM_EXT_START (KERNEL_ADDR + 1024 * 1024)
-#define MEM_PAGE_SIZE 1024
 // 真正给操作系统的物理内存空间的结束地址, mini2440只有64mb
 #define MEM_EXT_END (SDRAM_START + SDRAM_SIZE)
 // 虚拟空间中，用户进程的起始地址设置为 0x8000 0000,
@@ -34,13 +35,17 @@ typedef struct _addr_alloc_t {
 
 // 定义内存映射的数据结构
 typedef struct _memory_map_t {
-  void *vstart;        // 虚拟地址空间的起始地址
-  void *vend;          // 虚拟地址空间的结束地址
-  void *pstart;        // 物理地址空间的起始地址
-  uint32_t privilege;  // 该映射段的特权级，用户或者内核
+  void *vstart;           // 虚拟地址空间的起始地址
+  void *vend;             // 虚拟地址空间的结束地址
+  void *pstart;           // 物理地址空间的起始地址
+  uint32_t access_perim;  // 该映射段的特权级，用户或者内核
 } memory_map_t;
 
-// void memory_init(boot_info_t *boot_info);
+// 串口相关寄存器地址范围
+#define MEM_UART_START 0x50000000
+#define MEM_UART_END 0x50009000
+
+void memory_init();
 // uint32_t memory_creat_uvm(void);
 // int memory_copy_uvm(uint32_t to_page_dir, uint32_t from_page_dir);
 // void memory_destroy_uvm(uint32_t page_dir);

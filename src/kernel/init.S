@@ -13,14 +13,19 @@
 
 _exception_handler:
     
-    cmp r0, #EXCEPTION_IRQ
-    beq _irq_handler
+  
+    mov r1, pc;
+    ldr pc, [r1, r0]
 
-    cmp r0, #EXCEPTION_SWI
-    beq _swi_handler
-   
-   cmp r0, #EXCEPTION_RESET
-   beq _kernel_init
+    //异常任务分发数组，顺序固定
+    .word   _kernel_init    //reset 异常
+    .word   _undef_handler
+    .word   _prefetch_abort_handler
+    .word   _swi_handler
+    .word   _data_abort_handler
+    .word   _irq_handler
+    .word   _fiq_handler
+
 
  
 
@@ -77,6 +82,30 @@ _irq_handler:
     //恢复cpu上下文
     ldmfd sp!, {r0-r12,lr, pc}^
 
+
+_undef_handler:
+    mov r0, sp;
+    bl undef_handler
+    
+    ldmfd sp!, {r0-r14}^
+    movs pc, lr
+
+_data_abort_handler:
+
+    mov r0, sp;
+    bl data_abort_handler
+    
+    ldmfd sp!, {r0-r14}^
+    movs pc, lr
+
+_prefetch_abort_handler:
+    mov r0, sp;
+    bl prefetch_abort_handler
+    
+    ldmfd sp!, {r0-r14}^
+    movs pc, lr
+
+_fiq_handler:
 
 
 task_switch_by_sp:

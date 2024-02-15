@@ -16,7 +16,8 @@ static addr_alloc_t paddr_alloc;
 
 // 声明页目录表结构，并且使该页目录的起始地址按页大小对齐
 // 页目录项的高12位为页表的物理地址位，及4096个子页表
-static pde_t kernel_page_dir[PDE_CNT] __attribute__((aligned(MEM_PAGE_SIZE)));
+static pde_t kernel_page_dir[PDE_CNT]
+    __attribute__((aligned(FIRST_LEVEL_PAGE_TABLE_ALIGN)));
 
 /**
  * @brief 获取页的索引
@@ -116,20 +117,22 @@ static void addr_alloc_init(addr_alloc_t *alloc, uint8_t *bitmap_start,
 }
 
 /**
- * @brief  申请连续的内存页
+ * @brief  申请连续的内存页，并且起始页按align对齐
  *
  * @param alloc
  * @param page_count 申请页的数量
  * @return uint32_t 申请的第一个页的起始地址， 0：分配失败
  */
-static uint32_t addr_alloc_page(addr_alloc_t *alloc, int page_count) {
+static uint32_t addr_alloc_page_align(addr_alloc_t *alloc, int page_count,
+                                      int align) {
   uint32_t addr = 0;  // 记录分配的页的起始地址
 
   // TODO：加锁
   mutex_lock(&alloc->mutex);
 
   // 在位图中取连续的page_count个页进行分配
-  int page_index = bitmap_alloc_nbits(&alloc->bitmap, 0, page_count);
+  int page_index = bitmap_alloc_nbits_align(&alloc->bitmap, 0, page_count,
+                                            align / MEM_PAGE_SIZE);
   if (page_count >= 1 && page_index >= 0) {
     // 计算出申请到的第一个页的起始地址
     addr = alloc->start + page_index * alloc->page_size;
@@ -139,6 +142,17 @@ static uint32_t addr_alloc_page(addr_alloc_t *alloc, int page_count) {
   mutex_unlock(&alloc->mutex);
 
   return addr;
+}
+/**
+ * @brief  申请连续的内存页
+ *
+ * @param alloc
+ * @param page_count 申请页的数量
+ * @return uint32_t 申请的第一个页的起始地址， 0：分配失败
+ */
+static uint32_t addr_alloc_page(addr_alloc_t *alloc, int page_count) {
+  return addr_alloc_page_align(alloc, page_count,
+                               1 * 1024);  // 默认按1kb对齐方式分配页
 }
 
 /**
@@ -224,9 +238,10 @@ pte_t *find_pte(pde_t *page_dir, uint32_t vstart, int is_alloc) {
       return (pte_t *)0;
     }
 
-    // 为该目录项分配空间作为页表
+    // 为该目录项分配空间作为页表, 且页表基地址按4kb对齐
     uint32_t page_count = PTE_CNT * 4 / MEM_PAGE_SIZE;
-    uint32_t pg_addr = addr_alloc_page(&paddr_alloc, page_count);
+    uint32_t pg_addr = addr_alloc_page_align(&paddr_alloc, page_count,
+                                             SECOND_LEVEL_PAGE_TABLE_ALIGN);
     if (pg_addr == 0) {  // 分配失败
       return (pte_t *)0;
     }
@@ -255,16 +270,17 @@ pte_t *find_pte(pde_t *page_dir, uint32_t vstart, int is_alloc) {
  * @param vstart 虚拟地址的起始地址
  * @param pstart 物理地址的起始地址
  * @param page_count 分页数量
- * @param privilege 该段虚拟地址的特权级
+ * @param access_perim 该段虚拟地址的特权级
  * @return int -1:分配失败
  */
 int memory_creat_map(pde_t *page_dir, uint32_t vstart, uint32_t pstart,
-                     int page_count, uint32_t privilege) {
+                     int page_count, uint32_t access_perim) {
   // 1.为每一页创建对应的页表项
   for (int i = 0; i < page_count; ++i) {
     // //打印调试信息
-    log_printf("creat map: v-0x%x, p-0x%x, privilege:0x%x", vstart, pstart,
-               privilege);
+    // log_printf("creat map: v-0x%x, p-0x%x, access_perim:0x%x", vstart,
+    // pstart,
+    //            access_perim);
 
     // 2.通过虚拟地址在页目录表中获取对应的页目录项指向的页表,
     // 且当没有该页目录项时，为其分配一个页作为页表并让一个目录项指向该页表
@@ -279,7 +295,7 @@ int memory_creat_map(pde_t *page_dir, uint32_t vstart, uint32_t pstart,
     ASSERT(pte->domain.flag == 0);
 
     // 4.在页表项中创建对应的映射关系，并该页权限，页权限以当前权限为主，因为pde处已放宽权限
-    pte->v = pstart | privilege | PTE_P;
+    pte->v = pstart | access_perim | PTE_FLAG;
 
     // 5.将该页引用计数+1
     page_ref_add(&paddr_alloc, pstart);
@@ -297,26 +313,29 @@ int memory_creat_map(pde_t *page_dir, uint32_t vstart, uint32_t pstart,
  *
  */
 void create_kernal_table(void) {
+  // 清空kernal_page_dir
+  kernel_memset(kernel_page_dir, 0, PDE_CNT * 4);
+
   // 声明内核只读段的起始与结束地址和数据段的起始地址
   extern char s_text, e_text, s_data;
 
+  // 对内核的虚拟空间进行一一映射，即物理地址=虚拟地址，以预防使能mmu时的未知错误
   static memory_map_t kernal_map[] = {
-      {0, &s_text, 0,
-       PTE_W},  // 低64kb的空间映射关系，即0x10000(内核起始地址)以下部分的空间
-      {&s_text, &e_text, &s_text, 0},  // 只读段的映射关系(内核.text和.rodata段)
-      {&s_data, (void *)MEM_EBDA_START, &s_data,
-       PTE_W},  // 可读写段的映射关系，一直到bios的拓展数据区(内核.data与.bss段再加上剩余的可用数据区域)
-      {(void *)CONSOLE_DISP_START_ADDR, (void *)CONSOLE_DISP_END_ADDR,
-       (void *)CONSOLE_DISP_START_ADDR, PTE_W},  // 显存区域的映射关系
+      {SDRAM_INSIDE_START, SDRAM_INSIDE_START + SDRAM_INSIDE_SIZE,
+       SDRAM_INSIDE_START, PTE_AP_SYS},  // 内部4kb的空间映射关系，即0x0~0x1000
+      {&s_text, &e_text, &s_text,
+       PTE_AP_SYS},  // 只读段的映射关系(内核.text和.rodata段)
+      {&s_data, (void *)MEM_EXT_START, &s_data,
+       PTE_AP_SYS},  // 可读写段的映射关系
       {(void *)MEM_EXT_START, (void *)MEM_EXT_END, (void *)MEM_EXT_START,
-       PTE_W},  // 将1mb到127mb都映射给操作系统使用
-
-  };
+       PTE_AP_SYS},  // 将sdram基地址 + 1mb以上的空间都映射给操作系统使用
+      {(void *)MEM_UART_START, (void *)MEM_UART_END, (void *)MEM_UART_START,
+       PTE_AP_SYS}};  // 映射串口相关寄存器地址范围
 
   for (int i = 0; i < sizeof(kernal_map) / sizeof(kernal_map[0]); ++i) {
     memory_map_t *map = kernal_map + i;
 
-    // 将虚拟地址的起始地址按页大小4kb对齐，为了不丢失原有的虚拟地址空间，所以向下对齐vstart
+    // 将虚拟地址的起始地址按页大小对齐，为了不丢失原有的虚拟地址空间，所以向下对齐vstart
     // 理论上虚拟地址是不需要上下边缘对齐的，这里主要是为了计算所需页数
     // 因为虚拟地址的每一页都和页目录项以及页表项捆绑了，
     // 只需用页目录项和页表项为该页映射一个物理页即可，所以物理页才必须上下边缘按4kb对齐
@@ -330,7 +349,7 @@ void create_kernal_table(void) {
 
     // 创建内存映射关系
     memory_creat_map(kernel_page_dir, vstart, pstart, page_count,
-                     map->privilege);
+                     map->access_perim);
     // 清空内核空间对页的引用
     clear_page_ref(&paddr_alloc);
   }
@@ -339,9 +358,8 @@ void create_kernal_table(void) {
 /**
  * @brief  初始化化内存
  *
- * @param boot_info cpu在实模式下检测到的可用内存对象
  */
-void memory_init(boot_info_t *boot_info) {
+void memory_init() {
   // 声明紧邻内核first_task段后面的空间地址，用于存储位图，该变量定义在kernel.lds中
   extern char mem_kernel_end;
 
@@ -349,11 +367,11 @@ void memory_init(boot_info_t *boot_info) {
 
   log_printf("mem_kernel_end: 0x%x\n", &mem_kernel_end);
 
-  show_mem_info(boot_info);
+  show_mem_info(&boot_info);
 
   // 去除低1mb大小后可用的内存空间大小
   uint32_t mem_up1MB_free =
-      total_mem_size(boot_info) - (MEM_EXT_START - SDRAM_START);
+      total_mem_size(&boot_info) - (MEM_EXT_START - SDRAM_START);
 
   // 将可用空间大小下调到页大小的整数倍
   mem_up1MB_free = down2(mem_up1MB_free, MEM_PAGE_SIZE);
@@ -378,5 +396,6 @@ void memory_init(boot_info_t *boot_info) {
   create_kernal_table();
 
   // 设置内核的页目录表到CR3寄存器，并开启分页机制
-  mmu_set_page_dir((uint32_t)kernel_page_dir);
+  // 使能mmu
+  enable_mmu((uint32_t)kernel_page_dir);
 }

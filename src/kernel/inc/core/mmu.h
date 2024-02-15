@@ -44,6 +44,13 @@
  *所有空间都映射到cr3寄存器的0号域
  */
 
+// 一级页表和二级页表基地址对齐要求
+#define FIRST_LEVEL_PAGE_TABLE_ALIGN (16 * 1024)
+#define SECOND_LEVEL_PAGE_TABLE_ALIGN (4 * 1024)
+
+// 页表大小
+#define MEM_PAGE_SIZE 1024
+
 #define PDE_CNT \
   4096  // 页目录项的个数,一个页目录表映射整个4gb空间大小，每个页目录项映射1mb空间大小，所以需要4096个页目录项
 #define PTE_CNT \

@@ -22,6 +22,9 @@
 // SDRAM起始地址与大小
 #define SDRAM_START 0x30000000
 #define SDRAM_SIZE (64 * 1024 * 1024)
+// 内部sdram的起始地址和大小
+#define SDRAM_INSIDE_START 0x0
+#define SDRAM_INSIDE_SIZE (4 * 1024)
 
 // 内核加载地址
 #define KERNEL_ADDR SDRAM_START

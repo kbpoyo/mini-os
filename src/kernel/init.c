@@ -44,6 +44,8 @@ int kernel_init() {
 
   irq_init();
 
+  memory_init();
+
   task_manager_init();
 
   task_first_init();

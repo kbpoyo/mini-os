@@ -154,10 +154,6 @@ _init_stack:
 
 
 
-_exc_handler_undef:
-    ldr r0, undef
-    swi #0
-    bl _start
 
 _exc_handler_swi:
     stmfd sp!, {r0-r12, lr}
@@ -167,13 +163,6 @@ _exc_handler_swi:
 
     ldr r0, =EXCEPTION_SWI
     ldr pc, =KERNEL_ADDR
-
-_exc_handler_data_abort:
-    bl _start
-
-_exc_handler_prefetch_abort:
-    bl _start
-    
 
 _exc_handler_irq:
     msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)    //进入svc模式，在内核栈中保存r0-r12,lr
@@ -191,6 +180,30 @@ _exc_handler_irq:
 
     ldr r0, =EXCEPTION_IRQ
     ldr pc, =KERNEL_ADDR
+
+
+_exc_handler_data_abort:
+    stmfd sp!, {r0-r14}^
+    nop
+
+    ldr r0, =EXCEPTION_DATA_ABORT
+    ldr pc, =KERNEL_ADDR
+
+_exc_handler_prefetch_abort:
+    stmfd sp!, {r0-r14}^
+    nop
+
+    ldr r0, =EXCEPTION_PREFETCH_ABORT
+    ldr pc, =KERNEL_ADDR
+    
+
+_exc_handler_undef:
+    stmfd sp!, {r0-r14}^
+    nop
+
+    ldr r0, =EXCEPTION_UNDEF
+    ldr pc, =KERNEL_ADDR
+
 
 _exc_handler_ifq:
     bl _start

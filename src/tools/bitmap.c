@@ -92,52 +92,7 @@ int bitmap_is_set(bitmap_t *bitmap, int index) {
 }
 
 /**
- * @brief  在bitmap中分配一块大小为count个位的空间
- *
- * @param bitmap
- * @param bit 当某一位的值为bit时表示该位空闲，可供分配
- * @param count
- * @return int  分配空间在位图中的起始索引， -1:失败
- */
-int bitmap_alloc_nbits(bitmap_t *bitmap, int bit, uint32_t count) {
-  ASSERT(bitmap != (bitmap_t *)0);
-  ASSERT(count >= 0);
-
-  int search_index = 0;
-  int ok_index = -1;
-  while (search_index < bitmap->bit_count) {
-    // 确定可分配空间的起始索引
-    if (bitmap_get_bit(bitmap, search_index) != bit) {
-      search_index++;
-      continue;
-    }
-
-    // 记录可分配空间的起始索引
-    ok_index = search_index++;
-
-    // 判断该空间是否大小满足要求
-    for (int i = 1; i < count; ++i) {
-      // 空间大小不满足要求, 分配失败
-      if (search_index >= bitmap->bit_count ||
-          bitmap_get_bit(bitmap, search_index++) != bit) {
-        ok_index = -1;
-        break;
-      }
-    }
-
-    if (ok_index != -1) {  // 分配成功
-      // 将该片空间标记为已分配状态, 并返回起始索引
-      bitmap_set_bit(bitmap, ok_index, count, ~bit);
-      return ok_index;
-    }
-  }
-
-  // 遍历完整个位图也没有满足要求的空间则返回-1
-  return -1;
-}
-
-/**
- * @brief  在bitmap中分配一块大小为count个位的空间
+ * @brief  在bitmap中分配一块大小为count个位的空间, 并且起始位索引按align对齐
  *
  * @param bitmap
  * @param bit 当某一位的值为bit时表示该位空闲，可供分配
@@ -167,6 +122,7 @@ int bitmap_alloc_nbits_align(bitmap_t *bitmap, int bit, uint32_t count,
       if (search_index >= bitmap->bit_count ||
           bitmap_get_bit(bitmap, search_index++) != bit) {
         ok_index = -1;
+        search_index = up2(search_index, align);
         break;
       }
     }
@@ -180,4 +136,16 @@ int bitmap_alloc_nbits_align(bitmap_t *bitmap, int bit, uint32_t count,
 
   // 遍历完整个位图也没有满足要求的空间则返回-1
   return -1;
+}
+
+/**
+ * @brief  在bitmap中分配一块大小为count个位的空间
+ *
+ * @param bitmap
+ * @param bit 当某一位的值为bit时表示该位空闲，可供分配
+ * @param count
+ * @return int  分配空间在位图中的起始索引， -1:失败
+ */
+int bitmap_alloc_nbits(bitmap_t *bitmap, int bit, uint32_t count) {
+  return bitmap_alloc_nbits_align(bitmap, bit, count, 1);
 }

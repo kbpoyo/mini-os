@@ -29,6 +29,6 @@ uint8_t bitmap_get_bit(bitmap_t *bitmap, int index);
 void bitmap_set_bit(bitmap_t *bitmap, int index, uint32_t count, int bit);
 int bitmap_is_set(bitmap_t *bitmap, int index);
 int bitmap_alloc_nbits(bitmap_t *bitmap, int bit, uint32_t count);
-int bitmap_byte_count(uint32_t bit_count);
+uint32_t bitmap_byte_count(uint32_t bit_count);
 
 #endif
