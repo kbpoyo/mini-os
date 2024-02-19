@@ -15,7 +15,7 @@ _exception_handler:
     
   
     mov r1, pc;
-    ldr pc, [r1, r0]
+    ldr pc, [r1, r0, lsl#2]
 
     //异常任务分发数组，顺序固定
     .word   _kernel_init    //reset 异常
@@ -87,7 +87,9 @@ _undef_handler:
     mov r0, sp;
     bl undef_handler
     
-    ldmfd sp!, {r0-r14}^
+    ldmfd sp, {r0-r14}^
+    nop
+    add sp, #60
     movs pc, lr
 
 _data_abort_handler:
@@ -95,17 +97,22 @@ _data_abort_handler:
     mov r0, sp;
     bl data_abort_handler
     
-    ldmfd sp!, {r0-r14}^
-    movs pc, lr
+    ldmfd sp, {r0-r14}^
+    nop
+    add sp, #60
+    subs pc, lr, #8
 
 _prefetch_abort_handler:
     mov r0, sp;
     bl prefetch_abort_handler
     
-    ldmfd sp!, {r0-r14}^
-    movs pc, lr
+    ldmfd sp, {r0-r14}^
+    nop
+    add sp, #60
+    subs pc, lr, #4
 
 _fiq_handler:
+
 
 
 task_switch_by_sp:

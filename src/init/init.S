@@ -181,25 +181,31 @@ _exc_handler_irq:
     ldr r0, =EXCEPTION_IRQ
     ldr pc, =KERNEL_ADDR
 
-
+//对于stm和ldm指令，当pc不在传输列表时,且使用^将s位置位
+//表示传输的是用户模式寄存器，且不能使用基地址回写
+//当pc在传输列表时，对应ldm指令可以使用基地址回写，通常用来
+//异常模式下返回
 _exc_handler_data_abort:
-    stmfd sp!, {r0-r14}^
+    stmfd sp, {r0-r14}^ 
     nop
+    sub sp, #60
 
     ldr r0, =EXCEPTION_DATA_ABORT
     ldr pc, =KERNEL_ADDR
 
 _exc_handler_prefetch_abort:
-    stmfd sp!, {r0-r14}^
+    stmfd sp, {r0-r14}^
     nop
+    sub sp, #60
 
     ldr r0, =EXCEPTION_PREFETCH_ABORT
     ldr pc, =KERNEL_ADDR
     
 
 _exc_handler_undef:
-    stmfd sp!, {r0-r14}^
+    stmfd sp, {r0-r14}^
     nop
+    sub sp, #60
 
     ldr r0, =EXCEPTION_UNDEF
     ldr pc, =KERNEL_ADDR

@@ -15,6 +15,18 @@ __attribute__((always_inline)) static void cpu_set_cpsr(uint32_t state) {
   __asm__ __volatile__("msr cpsr, %[state]\n" : : [state] "r"(state) : "r0");
 }
 
+__attribute__((always_inline)) static uint32_t cpu_get_spser(void) {
+  uint32_t ret = 0;
+
+  __asm__ __volatile__("mrs %[ret], spsr\n" : [ret] "=r"(ret) : : "r0");
+
+  return ret;
+}
+
+__attribute__((always_inline)) static void cpu_set_spsr(uint32_t state) {
+  __asm__ __volatile__("msr spsr, %[state]\n" : : [state] "r"(state) : "r0");
+}
+
 /**
  * @brief 开中断
  *

@@ -3,7 +3,9 @@
 #include "common/boot_info.h"
 #include "common/os_config.h"
 #include "core/mmu.h"
+#include "tools/bitmap.h"
 #include "tools/klib.h"
+#include "tools/log.h"
 
 // TODO:暂时固定内存容量信息
 static boot_info_t boot_info = {
