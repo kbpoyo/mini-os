@@ -332,7 +332,11 @@ void create_kernal_table(void) {
       {(void *)MEM_EXT_START, (void *)MEM_EXT_END, (void *)MEM_EXT_START,
        PTE_AP_SYS},  // 将sdram基地址 + 1mb以上的空间都映射给操作系统使用
       {(void *)MEM_UART_START, (void *)MEM_UART_END, (void *)MEM_UART_START,
-       PTE_AP_SYS}};  // 映射串口相关寄存器地址范围
+       PTE_AP_SYS},  // 映射串口相关寄存器地址范围
+      {(void *)MEM_IRQ_START, (void *)MEM_IRQ_END, (void *)MEM_IRQ_START,
+       PTE_AP_SYS},  // 映射中断相关寄存器地址范围}
+      {(void *)MEM_TIMER_START, (void *)MEM_TIMER_END, (void *)MEM_TIMER_START,
+       PTE_AP_SYS}};  // 映射定时器相关寄存器地址范围};
 
   for (int i = 0; i < sizeof(kernal_map) / sizeof(kernal_map[0]); ++i) {
     memory_map_t *map = kernal_map + i;
@@ -365,7 +369,7 @@ void memory_init() {
   // 声明紧邻内核first_task段后面的空间地址，用于存储位图，该变量定义在kernel.lds中
   extern char mem_kernel_end;
 
-  log_printf("memory init\n");
+  log_printf("memory init...\n");
 
   log_printf("mem_kernel_end: 0x%x\n", &mem_kernel_end);
 
@@ -391,13 +395,62 @@ void memory_init() {
   // 位图的每一位表示一个页，计算位图所站的字节数即可跳过该区域
   mem_free += bitmap_byte_count(paddr_alloc.size / MEM_PAGE_SIZE);
 
+  log_printf("bitmap start addr: 0x%x, end addr: 0x%x\n", &mem_kernel_end,
+             mem_free);
+
   // 判断mem_free是否已越过可用数据区
   ASSERT(mem_free < (uint8_t *)MEM_EXT_START);
 
   // 创建内核的页表映射
   create_kernal_table();
 
-  // 设置内核的页目录表到CR3寄存器，并开启分页机制
+  // 设置内核的页目录表到CR2寄存器，并开启分页机制
+  mmu_set_page_dir(kernel_page_dir);
   // 使能mmu
-  enable_mmu((uint32_t)kernel_page_dir);
+  enable_mmu();
+
+  log_printf("memory init success...\n");
+}
+
+/**
+ * @brief 为进程的内核空间分配一页内存，需特权级0访问
+ *
+ * @return uint32_t 内存的起始地址
+ */
+uint32_t memory_alloc_page() {
+  // 操作系统内核已对整个内存空间进行了一一映射，而每个程序的2gb以下空间都使用操作系统的虚拟页表
+  // 所以直接返回该页物理地址，也就是该页在操作系统虚拟地址空间中的虚拟地址
+  // 需要注意的是后续访问该页需要sys特权级，因为访问的是内核空间
+  uint32_t addr = addr_alloc_page(&paddr_alloc, 1);
+  return addr;
+}
+
+/**
+ * @brief 返回当前进程的页目录表的地址
+ *
+ * @return pde_t*
+ */
+static pde_t *curr_page_dir() { return (pde_t *)(task_current()->page_dir); }
+
+/**
+ * @brief 释放一页内存空间
+ *
+ * @param addr
+ */
+void memory_free_page(uint32_t addr) {
+  if (addr < MEM_TASK_BASE) {  // 释放内核空间的一页内存
+    addr_free_page(
+        &paddr_alloc, addr,
+        1);  // 因为内核空间为一一映射关系，虚拟地址即为物理地址,且不需要解除映射关系
+  } else {   // 释放用户空间的一页内存
+    // 1.用虚拟地址找到该页对应的页表项
+    pte_t *pte = find_pte(curr_page_dir(), addr, 0);
+    ASSERT(pte != (pte_t *)0 && pte->domain.flag);
+
+    // 2.用该页的物理地址释放该页
+    addr_free_page(&paddr_alloc, pte_to_pg_addr(pte), 1);
+
+    // 3.将页表项清空，解除映射关系
+    pte->v = 0;
+  }
 }

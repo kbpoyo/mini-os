@@ -55,6 +55,10 @@ typedef struct _task_sp_t {
   uint32_t svc_sp;
 } task_sp_t;
 
+typedef struct _register_group_t {
+  uint32_t spsr, cpsr;
+  uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15;
+} register_group_t;
 #pragma pack()
 
 // 定义可执行任务的数据结构,即PCB进程控制块，书p406
@@ -73,6 +77,8 @@ typedef struct _task_t {
 
   char name[TASK_NAME_SIZE];  // 任务名称
 
+  uint32_t page_dir;  // 任务页目录表
+
   list_node_t
       ready_node;  // 用于插入就绪队列或休眠队列的节点，标记task在ready_list或sleep_list中的位置
   list_node_t task_node;  // 用于插入任务队列的节点，标记task在任务队列中的位置
@@ -80,6 +86,8 @@ typedef struct _task_t {
       wait_node;  // 用于插入信号量对象的等待队列的节点，标记task正在等待信号量
 
   task_sp_t task_sp;
+
+  register_group_t reg_group;  // 任务寄存器组
 
   // uint32_t base_svc_sp; //任务内核栈空间的初始值
 

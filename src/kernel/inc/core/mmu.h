@@ -157,13 +157,13 @@ static inline uint32_t get_pte_privilege(pte_t *pte) {
 }
 
 /**
- * @brief 设置页目录表的起始地址，将起始地址写入CR3寄存器
+ * @brief 设置页目录表的起始地址，将起始地址写入CR2寄存器
  *
  * @param paddr 页目录表的物理起始地址
  */
 static inline void mmu_set_page_dir(uint32_t paddr) {
-  // 设置cr2寄存器的高20位为页目录表的地址，因为按4kb对齐，所以
-  // 页目录表的起始地址page_dir的高20位才为有效位，低12位为0，将cr3的低12位就设置为0
+  // 设置cr2寄存器的高18位为页目录表的地址，因为按16kb对齐，所以
+  // 页目录表的起始地址page_dir的高18位才为有效位，低14位为0，将cr2的低14位就设置为0
   cpu_cr2_write(paddr);
 }
 

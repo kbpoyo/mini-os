@@ -3,6 +3,7 @@
 #include "common/cpu_instr.h"
 #include "common/os_config.h"
 #include "core/irq.h"
+#include "core/memory.h"
 #include "ipc/mutex.h"
 #include "tools/klib.h"
 #include "tools/log.h"
@@ -13,9 +14,6 @@ static task_manager_t task_manager;
 static task_t task_table[TASK_COUNT];
 // 定义用于维护task_table的互斥锁
 static mutex_t task_table_lock;
-
-static uint32_t stack_task[4096] __attribute__((section(".data"))) = {0};
-uint32_t stack_index __attribute__((section(".data"))) = 1024;
 
 /**
  * @brief 分配task任务结构
@@ -61,23 +59,32 @@ static int registers_init(task_t *task, uint32_t entry, uint32_t sp,
   // 在sp对应的栈空间中将寄存器组压入栈中
   if (entry <= 0 || sp <= 0) return 0;  // 调试用
 
-  uint32_t *sp_ptr = stack_task + stack_index;
-  stack_index += 1024;
-  sp_ptr -= 18;  // 为18个寄存器分配空间，r0-r12，sp,lr,pc,cpsr,spsr
-  kernel_memset(sp_ptr, 0, 18 * 4);
+  // 初始化任务的寄存器组
+  register_group_t reg_group;
+  kernel_memset(&reg_group, 0, sizeof(register_group_t));
+  reg_group.spsr = flag == TASK_FLAGS_USER ? TASK_CPSR_USER : TASK_CPSR_SYS;
+  reg_group.cpsr = flag == TASK_FLAGS_USER ? TASK_CPSR_USER : TASK_CPSR_SYS;
+  reg_group.r13 = sp;
+  reg_group.r15 = entry;
 
-  // sp_ptr[0] = spsr, [1] = cpsr, .... [17] = r15
-  sp_ptr[0] =
-      flag == TASK_FLAGS_USER
-          ? TASK_CPSR_USER
-          : TASK_CPSR_SYS;  // 初始化用户模式时的spsr，新任务执行使，spsr会传入给cpsr
-  sp_ptr[1] = flag == TASK_FLAGS_USER
-                  ? TASK_CPSR_USER
-                  : TASK_CPSR_SYS;  // 初始化用户模式时的cpsr
-  sp_ptr[15] = (uint32_t)sp;        // 初始化sp指针
-  sp_ptr[17] = entry;               // 初始化pc指针
+  // 为任务分配一页内核栈，并将寄存器组拷贝到内核栈中，等待任务的初始化
+  uint32_t sp_addr = memory_alloc_page();
+  sp_addr = sp_addr + MEM_PAGE_SIZE - sizeof(register_group_t);
+  kernel_memcpy((void *)sp_addr, &reg_group, sizeof(register_group_t));
 
-  task->task_sp.svc_sp = (uint32_t)sp_ptr;
+  // // sp_ptr[0] = spsr, [1] = cpsr, .... [17] = r15
+  // sp_ptr[0] =
+  //     flag == TASK_FLAGS_USER
+  //         ? TASK_CPSR_USER
+  //         : TASK_CPSR_SYS;  //
+  //         初始化用户模式时的spsr，新任务执行使，spsr会传入给cpsr
+  // sp_ptr[1] = flag == TASK_FLAGS_USER
+  //                 ? TASK_CPSR_USER
+  //                 : TASK_CPSR_SYS;  // 初始化用户模式时的cpsr
+  // sp_ptr[15] = (uint32_t)sp;        // 初始化sp指针
+  // sp_ptr[17] = entry;               // 初始化pc指针
+
+  task->task_sp.svc_sp = sp_addr;
   // task->base_svc_sp = task->svc_sp;
 
   return 0;
@@ -147,6 +154,7 @@ static void empty_task(void) {
  *
  */
 void task_manager_init(void) {
+  log_printf("task manager init start...\n");
   // 1.初始化所有任务队列
   list_init(&task_manager.ready_list);
   list_init(&task_manager.task_list);
@@ -163,6 +171,8 @@ void task_manager_init(void) {
   // 5.初始化静态任务表,及其互斥锁
   kernel_memset(task_table, 0, sizeof(task_table));
   mutex_init(&task_table_lock);
+
+  log_printf("task manager init success...\n");
 }
 
 /**

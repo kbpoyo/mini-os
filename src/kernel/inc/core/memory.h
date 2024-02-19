@@ -6,6 +6,9 @@
 #include "ipc/mutex.h"
 #include "tools/bitmap.h"
 
+// 定义任务内核栈分配页数
+#define MEM_TASK_STACK_PAGE_COUNT 4
+
 // 低1mb内存空间
 #define MEM_EXT_START (KERNEL_ADDR + 1024 * 1024)
 // 真正给操作系统的物理内存空间的结束地址, mini2440只有64mb
@@ -45,6 +48,14 @@ typedef struct _memory_map_t {
 #define MEM_UART_START 0x50000000
 #define MEM_UART_END 0x50009000
 
+// 中断相关寄存器地址范围映射
+#define MEM_IRQ_START 0x4a000000
+#define MEM_IRQ_END 0x4a00001c
+
+// 定时器相关寄存器范围
+#define MEM_TIMER_START 0x51000000
+#define MEM_TIMER_END 0x51000040
+
 void memory_init();
 // uint32_t memory_creat_uvm(void);
 // int memory_copy_uvm(uint32_t to_page_dir, uint32_t from_page_dir);
@@ -53,9 +64,12 @@ void memory_init();
 // alloc_size, uint32_t privilege); uint32_t memory_get_paddr(uint32_t page_dir,
 // uint32_t vaddr);
 
-// int memory_alloc_page_for(uint32_t vaddr, uint32_t alloc_size, uint32_t
-// priority); uint32_t memory_alloc_page(); void memory_free_page(uint32_t
-// addr); int memory_copy_uvm_data(uint32_t to_vaddr, uint32_t to_page_dir,
+// int memory_alloc_page_for(uint32_t vaddr, uint32_t alloc_size,
+//                           uint32_t priority);
+
+uint32_t memory_alloc_page();
+void memory_free_page(uint32_t addr);
+// int memory_copy_uvm_data(uint32_t to_vaddr, uint32_t to_page_dir,
 // uint32_t from_vaddr, uint32_t size);
 
 // char *sys_sbrk(int incr);
