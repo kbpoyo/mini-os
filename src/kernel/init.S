@@ -20,8 +20,8 @@ _exception_handler:
     //异常任务分发数组，顺序固定
     .word   _kernel_init    //reset 异常
     .word   _undef_handler
-    .word   _prefetch_abort_handler
     .word   _swi_handler
+    .word   _prefetch_abort_handler
     .word   _data_abort_handler
     .word   _irq_handler
     .word   _fiq_handler

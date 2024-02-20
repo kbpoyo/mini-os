@@ -21,11 +21,11 @@ uint32_t num __attribute__((section(".data"), aligned(16))) = 0;
 uint32_t stack_1[1024] __attribute__((section(".data"), aligned(16))) = {0};
 void task_test_1(void) {
   while (1) {
-    if (num <= 1000) {
-      yield();
-    }
+    // if (num <= 1000) {
+    //   yield();
+    // }
     log_printf("task_1 runing!, TTTT num = %d\n", num++);
-    // msleep(1000);
+    msleep(1000);
   }
 }
 
@@ -40,7 +40,7 @@ void task_test_2(void) {
 int kernel_init() {
   gpio_init();
 
-  uart_init();
+  log_init();
 
   irq_init();
 

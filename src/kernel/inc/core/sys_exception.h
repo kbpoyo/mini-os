@@ -3,6 +3,17 @@
 
 #include "common/types.h"
 
+/**
+ * @brief 定义mmu失效状态寄存器的错误状态码
+ *
+ */
+// 基于段的地址变换失效，即一级描述符[1:0]位为0b00
+#define MMU_ERR_FIRST_PAGE_ENTRY 0x5
+// 基于页的地址变换失效，即二级描述符[1:0]位为0b00
+#define MMU_ERR_SECOND_PAGE_ENTRY 0x7
+// 基于页访问的地址权限不够错误
+#define MMU_ERR_PAGE_ACCESS 0xf
+
 // 定义调用门处理函数的栈帧
 typedef struct _exception_frame_t {
   // 手动压入的寄存器

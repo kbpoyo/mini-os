@@ -5,6 +5,11 @@
 #include "dev/uart.h"
 #include "tools/klib.h"
 
+void log_init() {
+  uart_init();
+  log_printf(ESC_CLEAR_SCREEN ESC_COLOR_DEFAULT);
+}
+
 /**
  * @brief 日志输出
  *

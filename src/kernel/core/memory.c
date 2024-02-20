@@ -334,9 +334,12 @@ void create_kernal_table(void) {
       {(void *)MEM_UART_START, (void *)MEM_UART_END, (void *)MEM_UART_START,
        PTE_AP_SYS},  // 映射串口相关寄存器地址范围
       {(void *)MEM_IRQ_START, (void *)MEM_IRQ_END, (void *)MEM_IRQ_START,
-       PTE_AP_SYS},  // 映射中断相关寄存器地址范围}
+       PTE_AP_SYS},  // 映射中断相关寄存器地址范围
       {(void *)MEM_TIMER_START, (void *)MEM_TIMER_END, (void *)MEM_TIMER_START,
-       PTE_AP_SYS}};  // 映射定时器相关寄存器地址范围};
+       PTE_AP_SYS},  // 映射定时器相关寄存器地址范围
+      {(void *)MEM_GPIO_START, (void *)MEM_GPIO_END, (void *)MEM_GPIO_START,
+       PTE_AP_SYS}  // 映射gpio相关寄存器地址范围
+  };
 
   for (int i = 0; i < sizeof(kernal_map) / sizeof(kernal_map[0]); ++i) {
     memory_map_t *map = kernal_map + i;

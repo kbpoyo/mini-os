@@ -56,6 +56,10 @@ typedef struct _memory_map_t {
 #define MEM_TIMER_START 0x51000000
 #define MEM_TIMER_END 0x51000040
 
+// GPIO相关寄存器组
+#define MEM_GPIO_START 0x56000000
+#define MEM_GPIO_END 0x560000bc
+
 void memory_init();
 // uint32_t memory_creat_uvm(void);
 // int memory_copy_uvm(uint32_t to_page_dir, uint32_t from_page_dir);

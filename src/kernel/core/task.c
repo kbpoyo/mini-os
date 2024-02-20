@@ -84,6 +84,7 @@ static int registers_init(task_t *task, uint32_t entry, uint32_t sp,
   // sp_ptr[15] = (uint32_t)sp;        // 初始化sp指针
   // sp_ptr[17] = entry;               // 初始化pc指针
 
+  // 初始化任务内核栈起始位置
   task->task_sp.svc_sp = sp_addr;
   // task->base_svc_sp = task->svc_sp;
 

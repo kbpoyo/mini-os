@@ -37,6 +37,30 @@ void undef_handler(exception_frame_t* frame) {
   }
 }
 
+static void print_mmu_err_state() {
+  uint32_t mmu_err_code = cpu_cr5_read();
+
+  log_printf("mmu err info:\n");
+
+  if ((mmu_err_code & 0xf) == MMU_ERR_FIRST_PAGE_ENTRY) {
+    log_printf(
+        ESC_COLOR_ERROR
+        "error: first level page access error, the first page table entry is "
+        "not "
+        "present.\n" ESC_COLOR_DEFAULT);
+  } else if ((mmu_err_code & 0xf) == MMU_ERR_SECOND_PAGE_ENTRY) {
+    log_printf(ESC_COLOR_ERROR
+               "error: second level page access error, the second page table "
+               "entry is "
+               "not present.\n" ESC_COLOR_DEFAULT);
+  } else if ((mmu_err_code & 0xf) == MMU_ERR_PAGE_ACCESS) {
+    log_printf(ESC_COLOR_ERROR
+               "error: Page access is not authorized!\n" ESC_COLOR_DEFAULT);
+  } else {
+    log_printf(ESC_COLOR_ERROR "err: unknown err.\n" ESC_COLOR_DEFAULT);
+  }
+}
+
 void data_abort_handler(exception_frame_t* frame) {
   log_printf(
       "==================== Task Error ====================\n"
@@ -44,6 +68,8 @@ void data_abort_handler(exception_frame_t* frame) {
       "error address:\t0x%x\n"
       "error state:\t0x%x\n",
       cpu_cr6_read(), cpu_cr5_read());
+
+  print_mmu_err_state();
 
   print_exception_frame_info(frame);
   log_printf("===================================================\n");
@@ -59,6 +85,8 @@ void prefetch_abort_handler(exception_frame_t* frame) {
       "error address:\t0x%x\n"
       "error state:\t0x%x\n",
       cpu_cr6_read(), cpu_cr5_read());
+
+  print_mmu_err_state();
 
   print_exception_frame_info(frame);
   log_printf("===================================================\n");
