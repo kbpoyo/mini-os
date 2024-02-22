@@ -60,6 +60,10 @@ typedef struct _memory_map_t {
 #define MEM_GPIO_START 0x56000000
 #define MEM_GPIO_END 0x560000bc
 
+// nandflash相关寄存器组
+#define MEM_NADNFLASH_START 0x4E000000
+#define MEM_NANDFLASH_END 0x4E00003c
+
 void memory_init();
 // uint32_t memory_creat_uvm(void);
 // int memory_copy_uvm(uint32_t to_page_dir, uint32_t from_page_dir);
@@ -77,5 +81,7 @@ void memory_free_page(uint32_t addr);
 // uint32_t from_vaddr, uint32_t size);
 
 // char *sys_sbrk(int incr);
+
+void memory_show_bitmap();
 
 #endif

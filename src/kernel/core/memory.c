@@ -22,6 +22,24 @@ static pde_t kernel_page_dir[PDE_CNT]
     __attribute__((aligned(FIRST_LEVEL_PAGE_TABLE_ALIGN)));
 
 /**
+ * @brief 打印位图布局
+ *
+ */
+void memory_show_bitmap() {
+  int line_num = 20;
+  int line_count = paddr_alloc.bitmap.bit_count / (line_num * 8);
+
+  log_printf("========== bitmap ==========\n");
+  for (int i = 0; i < line_count; ++i) {
+    for (int j = 0; j < line_num; ++j) {
+      log_printf("%b", paddr_alloc.bitmap.bits[i * line_num + j]);
+    }
+  }
+
+  log_printf("========== bitmap ==========\n");
+}
+
+/**
  * @brief 获取页的索引
  *
  * @param alloc
@@ -338,8 +356,13 @@ void create_kernal_table(void) {
       {(void *)MEM_TIMER_START, (void *)MEM_TIMER_END, (void *)MEM_TIMER_START,
        PTE_AP_SYS},  // 映射定时器相关寄存器地址范围
       {(void *)MEM_GPIO_START, (void *)MEM_GPIO_END, (void *)MEM_GPIO_START,
-       PTE_AP_SYS}  // 映射gpio相关寄存器地址范围
+       PTE_AP_SYS},  // 映射gpio相关寄存器地址范围
+      {(void *)MEM_NADNFLASH_START, (void *)MEM_NANDFLASH_END,
+       (void *)MEM_NADNFLASH_START,
+       PTE_AP_SYS}  // 映射nandflash相关寄存器地址范围
   };
+
+  // memory_show_bitmap();
 
   for (int i = 0; i < sizeof(kernal_map) / sizeof(kernal_map[0]); ++i) {
     memory_map_t *map = kernal_map + i;
@@ -362,6 +385,8 @@ void create_kernal_table(void) {
     // 清空内核空间对页的引用
     clear_page_ref(&paddr_alloc);
   }
+
+  // memory_show_bitmap();
 }
 
 /**

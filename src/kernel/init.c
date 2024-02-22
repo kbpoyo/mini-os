@@ -5,8 +5,10 @@
 #include "core/memory.h"
 #include "core/task.h"
 #include "dev/gpio.h"
+#include "dev/nandflash.h"
 #include "dev/timer.h"
 #include "dev/uart.h"
+#include "tools/klib.h"
 #include "tools/log.h"
 
 void delay(uint32_t ms) {
@@ -46,30 +48,56 @@ int kernel_init() {
 
   memory_init();
 
-  task_manager_init();
+  // task_manager_init();
 
-  task_first_init();
+  // task_first_init();
 
-  task_t* task_1 = task_alloc();
-  int ret = task_init(task_1, "task_1", (uint32_t)task_test_1,
-                      (uint32_t)&stack_1[1024], TASK_FLAGS_SYSTEM);
-  ASSERT(ret != -1);
+  // task_t* task_1 = task_alloc();
+  // int ret = task_init(task_1, "task_1", (uint32_t)task_test_1,
+  //                     (uint32_t)&stack_1[1024], TASK_FLAGS_SYSTEM);
+  // ASSERT(ret != -1);
 
-  task_t* task_2 = task_alloc();
-  ret = task_init(task_2, "task_2", (uint32_t)task_test_2,
-                  (uint32_t)&stack_2[1024], TASK_FLAGS_SYSTEM);
-  ASSERT(ret != -1);
+  // task_t* task_2 = task_alloc();
+  // ret = task_init(task_2, "task_2", (uint32_t)task_test_2,
+  //                 (uint32_t)&stack_2[1024], TASK_FLAGS_SYSTEM);
+  // ASSERT(ret != -1);
 
-  task_start(task_1);
-  task_start(task_2);
+  // task_start(task_1);
+  // task_start(task_2);
 
-  timer_init();
+  // timer_init();
 
-  cpu_irq_start();
+  // cpu_irq_start();
+  // while (1) {
+  //   msleep(1000);
+  //   // log_printf("rINTPND = %x rINTMSK = %x rEINTMSK = %x, num = %d\n",
+  //   // rINTPND, rINTMSK, rEINTMASK, num++);
+  //   log_printf("first_task runing! num = %d\n", num++);
+  // }
+
+  nand_flash_init();
+
+  char buf[2048];
+
+  kernel_memset(buf, 0xee, 2048);
+
+  int ret = nand_write_page(0, buf);
+
+  log_printf("ret = %d\nbuf:\n", ret);
+
+  char buf_r[2048];
+
+  ret = nand_read_page(0, buf_r);
+
+  log_printf("ret = %d\nbuf:\n", ret);
+
+  for (int i = 0; i < 4096 / 16; ++i) {
+    for (int j = 0; j < 16; ++j) {
+      log_printf("0x%x\t", (uint8_t)buf_r[i * 16 + j]);
+    }
+    log_printf("\n");
+  }
+
   while (1) {
-    msleep(1000);
-    // log_printf("rINTPND = %x rINTMSK = %x rEINTMSK = %x, num = %d\n",
-    // rINTPND, rINTMSK, rEINTMASK, num++);
-    log_printf("first_task runing! num = %d\n", num++);
   }
 }
