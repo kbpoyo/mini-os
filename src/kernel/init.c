@@ -46,7 +46,7 @@ int kernel_init() {
 
   irq_init();
 
-  memory_init();
+  // memory_init();
 
   // task_manager_init();
 
@@ -79,15 +79,15 @@ int kernel_init() {
 
   char buf[2048];
 
-  kernel_memset(buf, 0xee, 2048);
+  kernel_memset(buf, 0xdd, 2048);
 
-  int ret = nand_write_page(0, buf);
+  int ret = nand_write_page(4444, buf);
 
   log_printf("ret = %d\nbuf:\n", ret);
 
   char buf_r[2048];
 
-  ret = nand_read_page(0, buf_r);
+  ret = nand_read_page(4444, buf_r);
 
   log_printf("ret = %d\nbuf:\n", ret);
 

@@ -44,7 +44,7 @@ A28 = 0                                        0x01 & (page >> 16)
 1110，页地址表示对应的某一页，或者说为行地址；
 */
 
-#define TACLS 0   // tacls = TACLS * tHCLK = 0
+#define TACLS 1   // tacls = TACLS * tHCLK = 0
 #define TWRPH0 1  // twrph0 = (TWRPH0 + 1) * tHCLK = 20ns > twp = 12ns
 #define TWRPH1 \
   0  // twrph1 = (TWRPH1 + 1) * tHCLK = 10ns > max(tclh, talh) =
@@ -145,7 +145,13 @@ A28 = 0                                        0x01 & (page >> 16)
       ;                           \
   }  // 等待nandflash不忙
 
-#define NF_CLEAR_RB_IRQ() \
+#define NF_DETECT_RB()            \
+  {                               \
+    while (!(rNFSTAT & (1 << 2))) \
+      ;                           \
+  }
+
+#define NF_CLEAR_RB() \
   { rNFSTAT |= (1 << 2); }  // 清除RnB信号
 
 // #define NF_DETECT_RB() NF_WAITRB()  // 等待RnB信号变高，即不忙
