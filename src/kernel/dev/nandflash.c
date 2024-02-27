@@ -2,6 +2,9 @@
 
 #include "tools/log.h"
 
+static uint8_t nand_buff[64 * (2048 + 64)]
+    __attribute__((section(".data"), align(4 * 1024)));
+
 /**
  * @brief 初始化nandflash
  *
@@ -45,7 +48,14 @@ static void nand_reset() {
   NF_CE_CLOSE();  // 关闭片选
 }
 
-int nand_read_page(uint32_t page_number, char* buf) {
+/**
+ * @brief 读取一页数据
+ *
+ * @param page_number
+ * @param buf
+ * @return int
+ */
+int nand_read_page(uint32_t page_number, char *buf) {
   uint32_t mecc0, secc;
 
   NF_CE_OPEN();  // 打开nandflash片选
@@ -59,7 +69,6 @@ int nand_read_page(uint32_t page_number, char* buf) {
   NF_CMD(CMD_READ1);  // 页读命令周期1
 
   // 写入5个地址周期
-
   NF_ADDR(0x00);  // 列地址A0~A7
 
   NF_ADDR(0x00);  // 列地址A8~A11
@@ -68,7 +77,7 @@ int nand_read_page(uint32_t page_number, char* buf) {
 
   NF_ADDR((page_number >> 8) & 0xff);  // 行地址A20~A27
 
-  NF_ADDR((page_number >> 16) & 0xff);  // 行地址A28
+  NF_ADDR((page_number >> 16) & 0x1);  // 行地址A28
 
   NF_CMD(CMD_READ2);  // 页读命令周期2
 
@@ -111,7 +120,15 @@ int nand_read_page(uint32_t page_number, char* buf) {
   }
 }
 
-uint8_t nand_ramdom_write(uint32_t page_number, uint32_t add, uint8_t dat) {
+/**
+ * @brief 随机写一字节数据
+ *
+ * @param page_number
+ * @param add
+ * @param dat
+ * @return uint8_t
+ */
+uint8_t nand_random_write(uint32_t page_number, uint32_t add, uint8_t dat) {
   uint8_t temp, stat;
 
   NF_CE_OPEN();  // 打开nandflash片选
@@ -130,7 +147,7 @@ uint8_t nand_ramdom_write(uint32_t page_number, uint32_t add, uint8_t dat) {
 
   NF_ADDR((page_number >> 8) & 0xff);  // 行地址A20~A27
 
-  NF_ADDR((page_number >> 16) & 0xff);  // 行地址A28
+  NF_ADDR((page_number >> 16) & 0x1);  // 行地址A28
 
   NF_CMD(CMD_RANDOMWRITE);  // 随意写命令
 
@@ -158,13 +175,22 @@ uint8_t nand_ramdom_write(uint32_t page_number, uint32_t add, uint8_t dat) {
 
   // 判断状态值的第0位是否为0，为0则写操作正确，否则错误
 
-  if (NF_STATE_IS_OK(stat))
+  if (NF_STATE_IS_OK(stat)) {
     return 0;  // 成功
-  else
+  } else {
+    log_printf("random write error!\n");
     return -1;  // 失败
+  }
 }
 
-uint8_t nand_ramdom_read(uint32_t page_number, uint32_t add) {
+/**
+ * @brief 随机读一字节数据
+ *
+ * @param page_number
+ * @param add
+ * @return uint8_t
+ */
+uint8_t nand_random_read(uint32_t page_number, uint32_t add) {
   NF_CE_OPEN();  // 打开nandflash片选
 
   NF_CLEAR_RB();  // 清RnB信号
@@ -181,11 +207,11 @@ uint8_t nand_ramdom_read(uint32_t page_number, uint32_t add) {
 
   NF_ADDR((page_number >> 8) & 0xff);  // 行地址A20~A27
 
-  NF_ADDR((page_number >> 16) & 0xff);  // 行地址A28
+  NF_ADDR((page_number >> 16) & 0x1);  // 行地址A28
 
   NF_CMD(CMD_READ2);  // 页读命令周期2
 
-  //   NF_DETECT_RB();  // 等待RnB信号变高，即不忙
+  NF_DETECT_RB();  // 等待RnB信号变高，即不忙
 
   NF_CMD(CMD_RANDOMREAD1);  // 随意读命令周期1
 
@@ -197,17 +223,15 @@ uint8_t nand_ramdom_read(uint32_t page_number, uint32_t add) {
 
   NF_CMD(CMD_RANDOMREAD2);  // 随意读命令周期2
 
-  NF_DETECT_RB();  // 等待flash空闲
-
   return NF_RDDATA8();  // 读取数据
 }
 
 uint8_t nand_is_bad_block(uint32_t block) {
-  return nand_ramdom_read(block * 64, 2054);
+  return nand_random_read(block * 64, 2054);
 }
 
 uint8_t nand_mark_bad_block(uint32_t block) {
-  return nand_ramdom_write(block * 64, 2054, MARK_BAD_BLOCK);
+  return nand_random_write(block * 64, 2054, MARK_BAD_BLOCK);
 }
 
 static uint8_t ecc_buf[4] __attribute__((section(".data")));
@@ -218,7 +242,7 @@ static uint8_t ecc_buf[4] __attribute__((section(".data")));
  * @param page_number 页号
  * @return uint8_t
  */
-uint8_t nand_write_page(uint32_t page_number, const char* buf) {
+uint8_t nand_write_page(uint32_t page_number, const char *buf) {
   if (nand_block_erase(page_number) == -1) {
     log_printf("write error: block erase failed! page_number = %d.\n",
                page_number);
@@ -257,7 +281,7 @@ uint8_t nand_write_page(uint32_t page_number, const char* buf) {
 
   NF_ADDR((page_number >> 8) & 0xff);  // 行地址A20~A27
 
-  NF_ADDR((page_number >> 16) & 0xff);  // 行地址A28
+  NF_ADDR((page_number >> 16) & 0x1);  // 行地址A28
 
   // 写入一页数据
   for (int i = 0; i < 2048; i++) {
@@ -341,11 +365,7 @@ int nand_block_erase(uint32_t page_number) {
   // 使能片选
   NF_CE_OPEN();
 
-  log_printf("clear before state = 0x%x\n", rNFSTAT);
-
   NF_CLEAR_RB();  // 清RnB信号
-
-  log_printf("clear after state = 0x%x\n", rNFSTAT);
 
   // 擦除命令1
   NF_CMD(CMD_ERASE1);
@@ -356,7 +376,7 @@ int nand_block_erase(uint32_t page_number) {
 
   NF_ADDR((page_number >> 8) & 0xff);  // 行地址A20~A27
 
-  NF_ADDR((page_number >> 16) & 0xff);  // 行地址A28
+  NF_ADDR((page_number >> 16) & 0x1);  // 行地址A28
 
   // 擦除命令2
   NF_CMD(CMD_ERASE2);
@@ -382,3 +402,105 @@ int nand_block_erase(uint32_t page_number) {
     return -1;
   }
 }
+
+/**
+ * @brief 参数校验
+ *
+ * @param addr
+ * @param buf
+ * @param size
+ * @return int
+ */
+static int param_is_ok(int addr, char *buf, int size) {
+  if (buf == 0) {
+    return -1;
+  }
+  if (addr < 0 || size < 0 || (addr + size) >= FLASH_PAGE_COUNT) {
+    return -1;
+  }
+}
+
+int nand_open() {
+  nand_flash_init();
+
+  return 0;
+}
+
+/**
+ * @brief 读nand
+ *
+ * @param dev 设备对象，记录了nand分区信息
+ * @param addr 读取的起始扇区相对于dev指定分区的偏移量
+ * @param buf 读取缓冲区
+ * @param size 读取扇区数
+ * @return * int
+ */
+int nand_read(int addr, char *buf, int size) {
+  if (param_is_ok(addr, buf, size) == -1) {
+    return -1;
+  }
+
+  int cnt;
+  for (cnt = 0; cnt < size; ++cnt) {
+    int ret = nand_read_page(addr, buf);
+    if (ret == -1) {
+      break;
+    }
+    buf += FLASH_PAGE_MAIN_SIZE;
+  }
+
+  return cnt;
+}
+
+/**
+ * @brief 写nand
+ *
+ * @param dev
+ * @param addr
+ * @param buf
+ * @param size 页数量
+ * @return int
+ */
+int nand_write(int addr, char *buf, int size) {
+  if (param_is_ok(addr, buf, size) == -1) {
+    return -1;
+  }
+
+  // 计算从addr页开始，在当前块内有多少页待处理
+  int ramin_page_count = FLASH_BLOCK_PAGE_COUNT - NF_BLOCK_PAGE_NUMBER(addr);
+  if (size < ramin_page_count) {  // 只处理当前块即可
+    for (int i = 0; i < size; ++i) {
+      int page_number = addr + i;
+      uint8_t temp = nand_random_read(page_number, FLASH_MAIN_ECC_ADDR);
+      if (temp != 0xff) {  // 进行覆盖写
+      } else {             //
+      }
+    }
+  } else {  // 还需处理后续块
+    size -= ramin_page_count;
+    // 对涉及到的每一个块进行处理
+    for (int i = 0; i < size % FLASH_BLOCK_PAGE_COUNT; ++i) {
+      int block_number = NF_BLOCK_NUMBER(addr);
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * @brief 向nand发送控制指令
+ *
+ * @param dev
+ * @param cmd
+ * @param arg0
+ * @param arg1
+ * @return int
+ */
+int nand_control(int cmd, int arg0, int arg1) { return -1; }
+
+/**
+ * @brief 关闭磁盘
+ *
+ * @param dev
+ */
+void nand_close() {}

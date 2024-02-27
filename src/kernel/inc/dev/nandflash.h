@@ -26,7 +26,18 @@
  *
  */
 
-#define FLASH_PAGE_SIZE 2 * 1024
+#define FLASH_PAGE_MAIN_SIZE (2 * 1024)
+#define FLASH_PAGE_SPARE_SIZE 64
+#define FLASH_BLOCK_MAIN_SIZE (128 * 1024)
+#define FLASH_BLOCK_SPARE_SIZE (4 * 1024)
+#define FLASH_MAIN_SIZE (256 * 1024 * 1024)
+#define FLASH_SPARE_SIZE (8 * 1024 * 1024)
+#define FLASH_PAGE_COUNT (FLASH_MAIN_SIZE / FLASH_PAGE_MAIN_SIZE)
+#define FLASH_BLOCK_COUNT (FLASH_MAIN_SIZE / FLASH_BLOCK_MAIN_SIZE)
+#define FLASH_BLOCK_PAGE_COUNT (FLASH_BLOCK_MAIN_SIZE / FLASH_PAGE_MAIN_SIZE)
+
+#define FLASH_MAIN_ECC_ADDR 2048
+#define FLASH_SPARE_ECC_ADDR (FLASH_MAIN_ECC_ADDR + 4)
 
 /*
 0x32F018 = 0011 0010 1111 0000 0001 1000；
@@ -154,11 +165,13 @@ A28 = 0                                        0x01 & (page >> 16)
 #define NF_CLEAR_RB() \
   { rNFSTAT |= (1 << 2); }  // 清除RnB信号
 
-// #define NF_DETECT_RB() NF_WAITRB()  // 等待RnB信号变高，即不忙
+#define NF_BLOCK_NUMBER(page_number) (page_number > 6)
+#define NF_BLOCK_PAGE_NUMBER(page_number) (page_number & 0x3f)
 
 void nand_flash_init();
 
-int nand_read_page(uint32_t page_number, char* buf);
+int nand_read(int addr, char* buf, int size);
 uint8_t nand_write_page(uint32_t page_number, const char* buf);
+uint8_t nand_random_read(uint32_t page_number, uint32_t add);
 
 #endif

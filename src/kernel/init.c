@@ -77,26 +77,17 @@ int kernel_init() {
 
   nand_flash_init();
 
-  char buf[2048];
+  char buf[2048 + 6];
 
   kernel_memset(buf, 0xdd, 2048);
 
-  int ret = nand_write_page(4444, buf);
+  int ret = nand_write_page(4441, buf);
 
-  log_printf("ret = %d\nbuf:\n", ret);
+  kernel_memset(buf, 0, 2048);
 
-  char buf_r[2048];
+  nand_read_page(4441, buf);
 
-  ret = nand_read_page(4444, buf_r);
-
-  log_printf("ret = %d\nbuf:\n", ret);
-
-  for (int i = 0; i < 4096 / 16; ++i) {
-    for (int j = 0; j < 16; ++j) {
-      log_printf("0x%x\t", (uint8_t)buf_r[i * 16 + j]);
-    }
-    log_printf("\n");
-  }
+  log_printf("ret = 0x%x\n", ret);
 
   while (1) {
   }
