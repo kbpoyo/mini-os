@@ -39,6 +39,9 @@ void task_test_2(void) {
   }
 }
 
+static uint8_t block_buff[3][2048 * 64];
+__attribute__((section(".data"), align(4 * 1024)));
+
 int kernel_init() {
   gpio_init();
 
@@ -75,19 +78,30 @@ int kernel_init() {
   //   log_printf("first_task runing! num = %d\n", num++);
   // }
 
-  nand_flash_init();
+  char buf[2048];
 
-  char buf[2048 + 6];
+  nand_open();
 
-  kernel_memset(buf, 0xdd, 2048);
+  // kernel_memset(block_buff, 0xee, 3 * 64 * 2048);
 
-  int ret = nand_write_page(4441, buf);
+  // int ret = nand_write(1000, block_buff, 3 * 64);
 
-  kernel_memset(buf, 0, 2048);
+  // kernel_memset(block_buff, 0, 3 * 64 * 2048);
 
-  nand_read_page(4441, buf);
+  // nand_read(1000, block_buff, 3 * 64);
 
-  log_printf("ret = 0x%x\n", ret);
+  // log_printf("ret = 0x%x\n", ret);
+
+  // kernel_memset(buf, 0xaa, 2048);
+  // nand_write(1024, buf, 1);
+
+  // for (int i = 0; i < 3 * 64 + 2; ++i) {
+  //   kernel_memset(buf, 0, 2048);
+
+  //   nand_read(999 + i, buf, 1);
+  // }
+  log_error("error: sdsad 0x%x\n", 0x111);
+  log_printf("ashdklasdas\n");
 
   while (1) {
   }

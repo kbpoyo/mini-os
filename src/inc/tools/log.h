@@ -10,5 +10,5 @@
 
 void log_init();
 void log_printf(const char *fmt, ...);
-
+void log_error(const char *fmt, ...);
 #endif

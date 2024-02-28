@@ -29,3 +29,17 @@ void log_printf(const char *fmt, ...) {
 
   uart_send_str(string);
 }
+
+void log_error(const char *fmt, ...) {
+  char string[256];
+
+  kernel_memset(string, 0, sizeof(string));
+
+  va_list ap;
+  va_start(ap, fmt);
+
+  kernel_vsprintf(string, fmt, ap);
+  va_end(ap);
+
+  log_printf(ESC_COLOR_ERROR "error: %s" ESC_COLOR_DEFAULT, string);
+}

@@ -165,13 +165,15 @@ A28 = 0                                        0x01 & (page >> 16)
 #define NF_CLEAR_RB() \
   { rNFSTAT |= (1 << 2); }  // 清除RnB信号
 
-#define NF_BLOCK_NUMBER(page_number) (page_number > 6)
+// 由总页号计算块号
+#define NF_BLOCK_NUMBER(page_number) (page_number >> 6)
+// 由总页号计算页在当前块中的页号
 #define NF_BLOCK_PAGE_NUMBER(page_number) (page_number & 0x3f)
 
-void nand_flash_init();
+int nand_open();
 
 int nand_read(int addr, char* buf, int size);
-uint8_t nand_write_page(uint32_t page_number, const char* buf);
+int nand_write(int addr, char* buf, int size);
 uint8_t nand_random_read(uint32_t page_number, uint32_t add);
 
 #endif
