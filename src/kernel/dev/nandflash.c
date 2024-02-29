@@ -3,12 +3,21 @@
 #include "tools/klib.h"
 #include "tools/log.h"
 
-// flash的块缓冲区
-static uint8_t nand_block_buff[FLASH_BLOCK_PAGE_COUNT][FLASH_PAGE_MAIN_SIZE];
-__attribute__((section(".data"), align(4 * 1024)));
+// flash的缓存结构
+typedef struct _nand_block_buff_t {
+  // flash的块缓冲区
+  uint8_t buff[FLASH_BLOCK_PAGE_COUNT * FLASH_PAGE_MAIN_SIZE /
+               FLASH_SECTOR_SIZE][FLASH_SECTOR_SIZE];
 
-// flash的块缓冲区记录的块的块号
-uint32_t nand_block_buff_number __attribute__((section(".data"))) = 0xffffffff;
+  // flash的块缓冲区记录的块的块号
+  uint32_t number;
+  // 缓冲区是否需要写回的标记
+  uint8_t is_write_back;
+} nand_block_buff_t;
+
+static nand_block_buff_t nand_block_buff
+    __attribute__((section(".data"), align(4 * 1024))) = {.number = 0xffffffff,
+                                                          .is_write_back = 0};
 
 /**
  * @brief 初始化nandflash
@@ -397,8 +406,8 @@ int nand_block_erase(uint32_t page_number) {
   if (NF_STATE_IS_OK(stat)) {
     return 0;
   } else {
-    log_printf("erase error: erase block failed! page_number = %d.\n",
-               page_number);
+    log_error("erase error: erase block failed! page_number = %d.\n",
+              page_number);
     return -1;
   }
 }
@@ -410,26 +419,31 @@ int nand_block_erase(uint32_t page_number) {
  * @return int
  */
 static int nand_write_buff_to_block() {
-  // 判断当前缓冲区块是否存在
-  if (nand_block_buff_number == 0xffffffff) {
+  // 判断当前缓冲区块是否存在，且缓冲区是否需要写回
+  if (nand_block_buff.number == 0xffffffff ||
+      nand_block_buff.is_write_back == 0) {
     return 0;
   }
 
   // 先进行块擦除
-  int ret = nand_block_erase(nand_block_buff_number * FLASH_BLOCK_PAGE_COUNT);
+  int ret = nand_block_erase(nand_block_buff.number * FLASH_BLOCK_PAGE_COUNT);
   if (ret == -1) {
     return -1;
   }
 
   // 再进行块写
   uint32_t page_number = 0;
-  for (int i = 0; i < FLASH_BLOCK_COUNT; ++i) {
-    page_number = nand_block_buff_number * FLASH_BLOCK_PAGE_COUNT + i;
-    ret = nand_write_page(page_number, nand_block_buff[i]);
+  for (int i = 0; i < FLASH_BLOCK_PAGE_COUNT; ++i) {
+    page_number = nand_block_buff.number * FLASH_BLOCK_PAGE_COUNT + i;
+    ret = nand_write_page(
+        page_number,
+        nand_block_buff.buff[i * FLASH_PAGE_MAIN_SIZE / FLASH_SECTOR_SIZE]);
     if (ret == -1) {
       return -1;
     }
   }
+  // 更新缓冲区标志
+  nand_block_buff.is_write_back = 0;
 
   return 0;
 }
@@ -446,24 +460,29 @@ static int nand_read_block_to_buff(uint32_t block_number) {
   }
 
   // 当前需要读取的块在缓冲区,不需要再次读取
-  if (block_number == nand_block_buff_number) {
+  if (block_number == nand_block_buff.number) {
     return 0;
   }
 
   // 当前需要读取的块不在缓冲区，需要再次读取
   // 先将缓冲区写回
-  int ret = nand_write_buff_to_block();
-  if (ret ==
-      -1) {  // TODO:之后可做错误处理，分配新的健康块进行写入，并且将该块标记为坏块
-    log_error("nand block buff write back error! block number = %d\n",
-              nand_block_buff_number);
-    return -1;
+  if (nand_block_buff.is_write_back) {
+    int ret = nand_write_buff_to_block();
+    if (ret ==
+        -1) {  // TODO:之后可做错误处理，分配新的健康块进行写入，并且将该块标记为坏块
+      log_error("nand block buff write back error! block number = %d\n",
+                nand_block_buff.number);
+      return -1;
+    }
   }
+
   // 再读取新块到缓冲区
   uint32_t page_number = 0;
   for (int i = 0; i < FLASH_BLOCK_PAGE_COUNT; ++i) {
     page_number = block_number * FLASH_BLOCK_PAGE_COUNT + i;
-    int ret = nand_read_page(page_number, nand_block_buff[i]);
+    int ret = nand_read_page(
+        page_number,
+        nand_block_buff.buff[i * FLASH_PAGE_MAIN_SIZE / FLASH_SECTOR_SIZE]);
     if (ret == -1) {
       log_error("nand block read buff error! block number = %d\n",
                 block_number);
@@ -471,8 +490,9 @@ static int nand_read_block_to_buff(uint32_t block_number) {
     }
   }
 
-  // 更新缓冲块号
-  nand_block_buff_number = block_number;
+  // 更新缓冲块号和标记
+  nand_block_buff.number = block_number;
+  nand_block_buff.is_write_back = 0;
 
   return 0;
 }
@@ -489,7 +509,7 @@ static int param_is_ok(int addr, char *buf, int size) {
   if (buf == 0) {
     return -1;
   }
-  if (addr < 0 || size < 0 || (addr + size) >= FLASH_PAGE_COUNT) {
+  if (addr < 0 || size < 0 || (addr + size) >= FLASH_SECTOR_COUNT) {
     return -1;
   }
 }
@@ -503,10 +523,9 @@ int nand_open() {
 /**
  * @brief 读nand
  *
- * @param dev 设备对象，记录了nand分区信息
- * @param addr 读取的起始扇区相对于dev指定分区的偏移量
+ * @param addr 读取的扇区号
  * @param buf 读取缓冲区
- * @param size 读取字节数
+ * @param size 读取扇区数
  * @return * int
  */
 int nand_read(int addr, char *buf, int size) {
@@ -514,55 +533,52 @@ int nand_read(int addr, char *buf, int size) {
     return -1;
   }
 
+  // 记录读取扇区数
+  int cnt = 0;
+  //  计算块内扇区号
+  int block_in_sector = NF_BLOCK_IN_SECTOR_NUMBER(addr);
+  // 计算该块内还有多少扇区可读
+  int remain_sector_count = FLASH_BLOCK_SECTOR_COUNT - block_in_sector;
+
+  // 将addr所属块读取到缓冲区中
   int ret = nand_read_block_to_buff(NF_BLOCK_NUMBER(addr));
   if (ret == -1) {
     log_error("nand read error! addr = %d\n", addr);
     return -1;
   }
 
-  // 计算从addr页开始，在当前块内有多少页待处理
-  int block_page_number = NF_BLOCK_PAGE_NUMBER(addr);
-  int remain_page_count = FLASH_BLOCK_PAGE_COUNT - block_page_number;
+  // 处理当前页
+  int sector_count = size <= remain_sector_count ? size : remain_sector_count;
+  kernel_memcpy(buf, nand_block_buff.buff[block_in_sector],
+                sector_count * FLASH_SECTOR_SIZE);
 
-  // 处理当前块
-  int page_count = size <= remain_page_count ? size : remain_page_count;
-  for (int i = 0; i < page_count; ++i) {
-    kernel_memcpy(nand_block_buff[block_page_number + i], buf,
-                  FLASH_PAGE_MAIN_SIZE);
-    buf += FLASH_PAGE_MAIN_SIZE;
-  }
+  buf += sector_count * FLASH_SECTOR_SIZE;
+  cnt += sector_count;
+  size -= sector_count;
 
-  // 将写好的缓冲区写回到flash中
-  nand_write_buff_to_block(NF_BLOCK_NUMBER(addr));
-
-  size -= remain_page_count;
   if (size > 0) {  // 处理后续块
-    // 计算待处理页的起始地址
-    addr += page_count;
+    // 计算待处理扇区的起始地址
+    addr += sector_count;
     // 计算后续还有多少个完整块
-    int remain_block_count = size / FLASH_BLOCK_PAGE_COUNT;
+    int remain_block_count = size / FLASH_BLOCK_SECTOR_COUNT;
     // 对涉及到的每一个块进行处理
     for (int i = 0; i < remain_block_count; ++i) {
       int block_number = NF_BLOCK_NUMBER(addr);
       nand_read_block_to_buff(block_number);
 
-      kernel_memcpy(nand_block_buff[0], buf, FLASH_BLOCK_MAIN_SIZE);
+      kernel_memcpy(buf, nand_block_buff.buff[0], FLASH_BLOCK_MAIN_SIZE);
 
-      nand_write_buff_to_block(block_number);
-
-      addr += FLASH_BLOCK_PAGE_COUNT;
+      addr += FLASH_BLOCK_SECTOR_COUNT;
       buf += FLASH_BLOCK_MAIN_SIZE;
+      cnt += FLASH_BLOCK_COUNT;
     }
 
     // 对最后不完整块进行处理
-    remain_page_count = size % FLASH_BLOCK_PAGE_COUNT;
+    remain_sector_count = size % FLASH_BLOCK_SECTOR_COUNT;
     nand_read_block_to_buff(NF_BLOCK_NUMBER(addr));
-    for (int i = 0; i < remain_page_count; ++i) {
-      kernel_memcpy(nand_block_buff[i], buf, FLASH_PAGE_MAIN_SIZE);
-      buf += FLASH_PAGE_MAIN_SIZE;
-    }
-
-    nand_write_buff_to_block(NF_BLOCK_NUMBER(addr));
+    kernel_memcpy(buf, nand_block_buff.buff[0],
+                  remain_sector_count * FLASH_SECTOR_SIZE);
+    cnt += remain_sector_count;
   }
 
   return cnt;
@@ -582,61 +598,59 @@ int nand_write(int addr, char *buf, int size) {
     return -1;
   }
 
-  // TODO:加锁
-  //  将该页所在块读取到缓存中
+  // 记录读取扇区数
+  int cnt = 0;
+  //  计算块内扇区号
+  int block_in_sector = NF_BLOCK_IN_SECTOR_NUMBER(addr);
+  // 计算该块内还有多少扇区可读
+  int remain_sector_count = FLASH_BLOCK_SECTOR_COUNT - block_in_sector;
+
+  // 将addr所属块读取到缓冲区中
   int ret = nand_read_block_to_buff(NF_BLOCK_NUMBER(addr));
   if (ret == -1) {
+    log_error("nand read error! addr = %d\n", addr);
     return -1;
   }
 
-  // 计算从addr页开始，在当前块内有多少页待处理
-  int block_page_number = NF_BLOCK_PAGE_NUMBER(addr);
-  int remain_page_count = FLASH_BLOCK_PAGE_COUNT - block_page_number;
-
   // 处理当前块
-  int page_count = size <= remain_page_count ? size : remain_page_count;
-  for (int i = 0; i < page_count; ++i) {
-    kernel_memcpy(nand_block_buff[block_page_number + i], buf,
-                  FLASH_PAGE_MAIN_SIZE);
-    buf += FLASH_PAGE_MAIN_SIZE;
-  }
+  int sector_count = size <= remain_sector_count ? size : remain_sector_count;
+  kernel_memcpy(nand_block_buff.buff[block_in_sector], buf,
+                sector_count * FLASH_SECTOR_SIZE);
+  // 标记该块需要写回
+  nand_block_buff.is_write_back = 1;
 
-  // 将写好的缓冲区写回到flash中
-  nand_write_buff_to_block(NF_BLOCK_NUMBER(addr));
+  buf += sector_count * FLASH_SECTOR_SIZE;
+  cnt += sector_count;
+  size -= sector_count;
 
-  size -= remain_page_count;
   if (size > 0) {  // 处理后续块
-    // 计算待处理页的起始地址
-    addr += page_count;
+    // 计算待处理扇区的起始地址
+    addr += sector_count;
     // 计算后续还有多少个完整块
-    int remain_block_count = size / FLASH_BLOCK_PAGE_COUNT;
+    int remain_block_count = size / FLASH_BLOCK_SECTOR_COUNT;
     // 对涉及到的每一个块进行处理
     for (int i = 0; i < remain_block_count; ++i) {
       int block_number = NF_BLOCK_NUMBER(addr);
       nand_read_block_to_buff(block_number);
 
-      kernel_memcpy(nand_block_buff[0], buf, FLASH_BLOCK_MAIN_SIZE);
+      kernel_memcpy(nand_block_buff.buff[0], buf, FLASH_BLOCK_MAIN_SIZE);
+      nand_block_buff.is_write_back = 1;
 
-      nand_write_buff_to_block(block_number);
-
-      addr += FLASH_BLOCK_PAGE_COUNT;
+      addr += FLASH_BLOCK_SECTOR_COUNT;
       buf += FLASH_BLOCK_MAIN_SIZE;
+      cnt += FLASH_BLOCK_COUNT;
     }
 
     // 对最后不完整块进行处理
-    remain_page_count = size % FLASH_BLOCK_PAGE_COUNT;
+    remain_sector_count = size % FLASH_BLOCK_SECTOR_COUNT;
     nand_read_block_to_buff(NF_BLOCK_NUMBER(addr));
-    for (int i = 0; i < remain_page_count; ++i) {
-      kernel_memcpy(nand_block_buff[i], buf, FLASH_PAGE_MAIN_SIZE);
-      buf += FLASH_PAGE_MAIN_SIZE;
-    }
-
-    nand_write_buff_to_block(NF_BLOCK_NUMBER(addr));
+    kernel_memcpy(nand_block_buff.buff[0], buf,
+                  remain_sector_count * FLASH_SECTOR_SIZE);
+    nand_block_buff.is_write_back = 1;
+    cnt += remain_sector_count;
   }
 
-  // TODO:解锁
-
-  return 0;
+  return cnt;
 }
 
 /**
@@ -655,4 +669,4 @@ int nand_control(int cmd, int arg0, int arg1) { return -1; }
  *
  * @param dev
  */
-void nand_close() {}
+void nand_close() { nand_write_buff_to_block(); }

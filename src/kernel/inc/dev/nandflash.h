@@ -23,6 +23,8 @@
  * A11: 0表示页内地址， 1表示页oob地址(2048~2111)64B地址
  * 行地址：A12~A28 用来确定页号
  *
+ *  !这里将flash每一页抽象为4个512字节大小的分区
+ *  扇区数量：2048(块)*64(页)*4(扇区)
  *
  */
 
@@ -35,6 +37,9 @@
 #define FLASH_PAGE_COUNT (FLASH_MAIN_SIZE / FLASH_PAGE_MAIN_SIZE)
 #define FLASH_BLOCK_COUNT (FLASH_MAIN_SIZE / FLASH_BLOCK_MAIN_SIZE)
 #define FLASH_BLOCK_PAGE_COUNT (FLASH_BLOCK_MAIN_SIZE / FLASH_PAGE_MAIN_SIZE)
+#define FLASH_SECTOR_SIZE 512
+#define FLASH_BLOCK_SECTOR_COUNT (FLASH_BLOCK_MAIN_SIZE / FLASH_SECTOR_SIZE)
+#define FLASH_SECTOR_COUNT (FLASH_MAIN_SIZE / FLASH_SECTOR_SIZE)
 
 #define FLASH_MAIN_ECC_ADDR 2048
 #define FLASH_SPARE_ECC_ADDR (FLASH_MAIN_ECC_ADDR + 4)
@@ -165,15 +170,16 @@ A28 = 0                                        0x01 & (page >> 16)
 #define NF_CLEAR_RB() \
   { rNFSTAT |= (1 << 2); }  // 清除RnB信号
 
-// 由总页号计算块号
-#define NF_BLOCK_NUMBER(page_number) (page_number >> 6)
-// 由总页号计算页在当前块中的页号
-#define NF_BLOCK_PAGE_NUMBER(page_number) (page_number & 0x3f)
+// 由总扇区号计算块号
+#define NF_BLOCK_NUMBER(sector) (sector >> 8)
+// 由总扇区号计算块内扇区号
+#define NF_BLOCK_IN_SECTOR_NUMBER(sector) (sector & 0xff)
 
 int nand_open();
 
 int nand_read(int addr, char* buf, int size);
 int nand_write(int addr, char* buf, int size);
-uint8_t nand_random_read(uint32_t page_number, uint32_t add);
+
+void nand_close();
 
 #endif
