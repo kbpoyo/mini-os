@@ -259,7 +259,7 @@ pte_t *find_pte(pde_t *page_dir, uint32_t vstart, int is_alloc) {
     }
 
     // 为该目录项分配空间作为页表, 且页表基地址按4kb对齐
-    uint32_t page_count = PTE_CNT * 4 / MEM_PAGE_SIZE;
+    uint32_t page_count = PTE_CNT * sizeof(pte_t) / MEM_PAGE_SIZE;
     uint32_t pg_addr = addr_alloc_page_align(&paddr_alloc, page_count,
                                              SECOND_LEVEL_PAGE_TABLE_ALIGN);
     if (pg_addr == 0) {  // 分配失败
@@ -445,11 +445,19 @@ void memory_init() {
  *
  * @return uint32_t 内存的起始地址
  */
-uint32_t memory_alloc_page() {
-  // 操作系统内核已对整个内存空间进行了一一映射，而每个程序的2gb以下空间都使用操作系统的虚拟页表
-  // 所以直接返回该页物理地址，也就是该页在操作系统虚拟地址空间中的虚拟地址
-  // 需要注意的是后续访问该页需要sys特权级，因为访问的是内核空间
-  uint32_t addr = addr_alloc_page(&paddr_alloc, 1);
+uint32_t memory_alloc_page(int page_count) {
+  uint32_t addr = addr_alloc_page(&paddr_alloc, page_count);
+  return addr;
+}
+
+/**
+ * @brief 为进程的内核空间分配page_count页内存
+ * 并让起始页按align对齐
+ *
+ * @return uint32_t 内存的起始地址
+ */
+uint32_t memory_alloc_page_align(int page_count, int align) {
+  uint32_t addr = addr_alloc_page_align(&paddr_alloc, page_count, align);
   return addr;
 }
 
@@ -481,4 +489,85 @@ void memory_free_page(uint32_t addr) {
     // 3.将页表项清空，解除映射关系
     pte->v = 0;
   }
+}
+
+/**
+ * @brief 为进程在物理地址空间中分配对应的页空间，并进行映射，
+ *        使进程的虚拟地址与物理地址对应起来
+ *
+ * @param page_dir 进程的页目录表
+ * @param vaddr 进程各个代码段的起始虚拟地址
+ * @param alloc_size 为进程分配的页空间大小
+ * @param priority 进程页空间的权限
+ * @return int
+ */
+int memory_alloc_for_page_dir(uint32_t page_dir, uint32_t vaddr,
+                              uint32_t alloc_size, uint32_t privilege) {
+  // 1.记录当前分配的虚拟页的起始地址
+  uint32_t curr_vaddr = vaddr;
+  // 2.计算需要分配多少页
+  int page_count = up2(alloc_size, MEM_PAGE_SIZE) / MEM_PAGE_SIZE;
+
+  // 3.逐页进行映射
+  for (int i = 0; i < page_count; ++i) {
+    uint32_t paddr = addr_alloc_page(&paddr_alloc, 1);
+    if (paddr == 0) {  // 分配失败
+      log_error("mem alloc failed. no memory\n");
+      // TODO:当分配失败时应该将之前分配的页全部归还，且将映射关系也全部解除
+      return 0;
+    }
+
+    int err =
+        memory_creat_map((pde_t *)page_dir, curr_vaddr, paddr, 1, privilege);
+    if (err < 0) {  // 分配失败
+      log_error("create memory failed. err = %d\n", err);
+      // TODO:当分配失败时应该将之前分配的页全部归还，且将映射关系也全部解除
+      return 0;
+    }
+
+    curr_vaddr += MEM_PAGE_SIZE;
+  }
+
+  return 0;
+}
+
+/**
+ * @brief 为当前进程的虚拟地址分配页空间创建映射关系
+ *
+ * @param vaddr 待分配空间的起始地址
+ * @param alloc_size 为其分配的空间大小
+ * @param privilege 对应页空间的权限
+ * @return int 错误码
+ */
+int memory_alloc_page_for(uint32_t vaddr, uint32_t alloc_size,
+                          uint32_t privilege) {
+  return memory_alloc_for_page_dir(task_current()->page_dir, vaddr, alloc_size,
+                                   privilege);
+}
+
+/**
+ * @brief 创建用户进程的虚拟内存空间，即页目录表
+ *
+ * @return uint32_t
+ */
+uint32_t memory_creat_uvm() {
+  // 1.分配一页作为页目录表
+  pde_t *page_dir = (pde_t *)addr_alloc_page_align(
+      &paddr_alloc, sizeof(pde_t) * PDE_CNT / MEM_PAGE_SIZE,
+      FIRST_LEVEL_PAGE_TABLE_ALIGN);
+  if (page_dir == 0) return 0;
+
+  // 2.将该页的内容清空
+  kernel_memset((void *)page_dir, 0, sizeof(pde_t) * PDE_CNT);
+
+  // 3.获取用户进程空间的第一个页目录项索引, 用户进程空间的起始地址MEM_TASK_BASE
+  // = 0x800 00000
+  uint32_t user_pde_start = pde_index(MEM_TASK_BASE);
+
+  // 4.将用户进程空间以下的空间映射给操作系统使用，即将0~user_pde_start的pde提供给操作系统作为页目录项
+  for (int i = 0; i < user_pde_start; ++i) {
+    page_dir[i].v = kernel_page_dir[i].v;  // 所有进程都共享操作系统的页表
+  }
+
+  return (uint32_t)page_dir;
 }

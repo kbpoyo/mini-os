@@ -18,6 +18,8 @@
         "memory.h": "c",
         "boot_info.h": "c",
         "log.h": "c",
-        "nandflash.h": "c"
+        "nandflash.h": "c",
+        "disk.h": "c",
+        "uart.h": "c"
     }
 }

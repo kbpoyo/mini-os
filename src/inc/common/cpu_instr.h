@@ -51,11 +51,12 @@ __attribute__((always_inline)) static void cpu_irq_close() {
           : "r0");
 }
 
-__attribute__((always_inline)) static void cpu_set_irq_stack(uint32_t svc_sp) {
+__attribute__((always_inline)) static void cpu_set_kernel_stack(
+    uint32_t svc_sp) {
   __asm__ __volatile__(
       "mrs r0, cpsr\n"
       "bic r0, #0x1f\n"
-      "orr r0, #0x12\n"
+      "orr r0, #0x13\n"
       "msr cpsr, r0\n"
       "mov sp, %[svc_sp]\n"
       "mrs r0, cpsr\n"

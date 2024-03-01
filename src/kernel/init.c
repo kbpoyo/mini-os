@@ -1,6 +1,6 @@
 
-#include "applib/lib_syscall.h"
 #include "common/cpu_instr.h"
+#include "core/dev.h"
 #include "core/irq.h"
 #include "core/memory.h"
 #include "core/task.h"
@@ -39,8 +39,43 @@ void task_test_2(void) {
   }
 }
 
-static uint8_t block_buff[2 * 64 * 4][512];
-__attribute__((section(".data"), align(4 * 1024)));
+void write_fs_nand() {
+  // char* buff = (char*)0x30200000;
+  // int sector_count = 32 * 1024 * 1024 / 512;
+
+  // nand_open();
+
+  // for (int i = 0; i < sector_count; ++i) {
+  //   int ret = nand_write(i, buff, 1);
+  //   buff += 512;
+  // }
+
+  // nand_close();
+}
+
+/**
+ * @brief 跳转到第一个任务进程
+ *
+ */
+void move_to_first_task(void) {
+  // 1.获取当前任务
+  task_t *curr = task_current();
+  ASSERT(curr != 0);
+
+  // 2.获取当前任务的tss结构
+  register_group_t *reg = &(curr->reg_group);
+
+  // 设置用户栈和内核栈并进行任务跳转且切换模式到用户模式
+  __asm__ __volatile__(
+      "mov sp, %[user_sp]\n"
+      "msr cpsr, %[svc_cpsr]\n"
+      "mov sp, %[svc_sp]\n"
+      "msr spsr, %[user_cpsr]\n"
+      "push {%[entry]}\n"
+      "ldmfd sp!, {pc}^\n" ::[user_sp] "r"(reg->r13),
+      [svc_cpsr] "r"(CPU_MODE_SVC), [svc_sp] "r"(curr->task_sp.svc_sp),
+      [user_cpsr] "r"(CPU_MODE_USER), [entry] "r"(reg->r15));
+}
 
 int kernel_init() {
   gpio_init();
@@ -49,11 +84,11 @@ int kernel_init() {
 
   irq_init();
 
-  // memory_init();
+  memory_init();
 
-  // task_manager_init();
+  task_manager_init();
 
-  // task_first_init();
+  task_first_init();
 
   // task_t* task_1 = task_alloc();
   // int ret = task_init(task_1, "task_1", (uint32_t)task_test_1,
@@ -70,27 +105,7 @@ int kernel_init() {
 
   // timer_init();
 
-  // cpu_irq_start();
-  // while (1) {
-  //   msleep(1000);
-  //   // log_printf("rINTPND = %x rINTMSK = %x rEINTMSK = %x, num = %d\n",
-  //   // rINTPND, rINTMSK, rEINTMASK, num++);
-  //   log_printf("first_task runing! num = %d\n", num++);
-  // }
+  cpu_irq_start();
 
-  char buff[512 * 4];
-  int sector_start = 0;
-  int sector_size = 4 * 64 * 4;
-
-  nand_open();
-
-  for (int i = 0; i < sector_size; i += 4) {
-    kernel_memset(buff, 0, 512 * 4);
-    int ret = nand_read(sector_start + i, buff, 4);
-  }
-
-  nand_close();
-
-  while (1) {
-  }
+  move_to_first_task();
 }

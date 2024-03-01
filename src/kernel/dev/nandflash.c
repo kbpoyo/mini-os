@@ -6,8 +6,8 @@
 // flash的缓存结构
 typedef struct _nand_block_buff_t {
   // flash的块缓冲区
-  uint8_t buff[FLASH_BLOCK_PAGE_COUNT * FLASH_PAGE_MAIN_SIZE /
-               FLASH_SECTOR_SIZE][FLASH_SECTOR_SIZE];
+  char buff[FLASH_BLOCK_PAGE_COUNT * FLASH_PAGE_MAIN_SIZE / FLASH_SECTOR_SIZE]
+           [FLASH_SECTOR_SIZE];
 
   // flash的块缓冲区记录的块的块号
   uint32_t number;
@@ -16,7 +16,7 @@ typedef struct _nand_block_buff_t {
 } nand_block_buff_t;
 
 static nand_block_buff_t nand_block_buff
-    __attribute__((section(".data"), align(4 * 1024))) = {.number = 0xffffffff,
+    __attribute__((section(".data"), align(2 * 1024))) = {.number = 0xffffffff,
                                                           .is_write_back = 0};
 
 /**
@@ -144,7 +144,7 @@ int nand_read_page(uint32_t page_number, char *buf) {
  * @return uint8_t
  */
 uint8_t nand_random_write(uint32_t page_number, uint32_t add, uint8_t dat) {
-  uint8_t temp, stat;
+  uint8_t stat;
 
   NF_CE_OPEN();  // 打开nandflash片选
 
@@ -512,6 +512,8 @@ static int param_is_ok(int addr, char *buf, int size) {
   if (addr < 0 || size < 0 || (addr + size) >= FLASH_SECTOR_COUNT) {
     return -1;
   }
+
+  return 0;
 }
 
 int nand_open() {

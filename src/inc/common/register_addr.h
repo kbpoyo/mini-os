@@ -226,10 +226,13 @@
 
 #define UTXH0 (0x50000020)  // Byte_access address by DMA
 #define URXH0 (0x50000024)
+#define UTRSTAT0 (0x50000010)  // UART 0 Tx/Rx status
 #define UTXH1 (0x50004020)
 #define URXH1 (0x50004024)
+#define UTRSTAT1 (0x50004010)  // UART 1 Tx/Rx status
 #define UTXH2 (0x50008020)
 #define URXH2 (0x50008024)
+#define UTRSTAT2 (0x50008010)  // UART 2 Tx/Rx status
 
 #endif
 

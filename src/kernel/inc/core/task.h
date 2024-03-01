@@ -75,9 +75,11 @@ typedef struct _task_t {
   int slice_curr;  // 任务当前的所拥有的时间分片数
   int sleep;       // 当前任务延时的时间片数
 
-  char name[TASK_NAME_SIZE];  // 任务名称
+  uint32_t page_dir;    // 任务页目录表
+  uint32_t heap_start;  // 堆起始地址
+  uint32_t heap_end;    // 堆结束地址
 
-  uint32_t page_dir;  // 任务页目录表
+  char name[TASK_NAME_SIZE];  // 任务名称
 
   list_node_t
       ready_node;  // 用于插入就绪队列或休眠队列的节点，标记task在ready_list或sleep_list中的位置

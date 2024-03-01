@@ -11,7 +11,7 @@
 // 定义全局唯一的任务管理器对象
 static task_manager_t task_manager;
 // 定义静态的任务表，用于任务的静态分配
-static task_t task_table[TASK_COUNT];
+static task_t task_table[TASK_COUNT] __attribute__((aligned(4)));
 // 定义用于维护task_table的互斥锁
 static mutex_t task_table_lock;
 
@@ -60,17 +60,21 @@ static int registers_init(task_t *task, uint32_t entry, uint32_t sp,
   if (entry <= 0 || sp <= 0) return 0;  // 调试用
 
   // 初始化任务的寄存器组
-  register_group_t reg_group;
-  kernel_memset(&reg_group, 0, sizeof(register_group_t));
-  reg_group.spsr = flag == TASK_FLAGS_USER ? TASK_CPSR_USER : TASK_CPSR_SYS;
-  reg_group.cpsr = flag == TASK_FLAGS_USER ? TASK_CPSR_USER : TASK_CPSR_SYS;
-  reg_group.r13 = sp;
-  reg_group.r15 = entry;
+  kernel_memset(&(task->reg_group), 0, sizeof(register_group_t));
+  task->reg_group.spsr =
+      flag == TASK_FLAGS_USER ? TASK_CPSR_USER : TASK_CPSR_SYS;
+  task->reg_group.cpsr =
+      flag == TASK_FLAGS_USER ? TASK_CPSR_USER : TASK_CPSR_SYS;
+  task->reg_group.r13 = sp;
+  task->reg_group.r15 = entry;
 
   // 为任务分配一页内核栈，并将寄存器组拷贝到内核栈中，等待任务的初始化
-  uint32_t sp_addr = memory_alloc_page();
-  sp_addr = sp_addr + MEM_PAGE_SIZE - sizeof(register_group_t);
-  kernel_memcpy((void *)sp_addr, &reg_group, sizeof(register_group_t));
+  uint32_t sp_addr = memory_alloc_page(1);
+  if (task != &task_manager.first_task) {  // 对非first_task进行寄存器初始化
+    sp_addr = sp_addr + MEM_PAGE_SIZE - sizeof(register_group_t);
+    kernel_memcpy((void *)sp_addr, &(task->reg_group),
+                  sizeof(register_group_t));
+  }
 
   // // sp_ptr[0] = spsr, [1] = cpsr, .... [17] = r15
   // sp_ptr[0] =
@@ -121,7 +125,9 @@ int task_init(task_t *task, const char *name, uint32_t entry, uint32_t sp,
   task->sleep = 0;
   task->pid = (uint32_t)task;
   // task->parent = (task_t *)0;
-  // task->heap_start = task->heap_end = 0;
+  task->heap_start = task->heap_end = 0;
+  // 分配16页给任务当作页目录表
+  task->page_dir = memory_creat_uvm();
   // task->status = 0;
 
   // 5.初始化文件表
@@ -191,18 +197,49 @@ void task_start(task_t *task) {
  *
  */
 void task_first_init(void) {
-  // 1.初始化任务，当前任务是在任务管理器启用前就执行的，
-  // 拥有自己的栈空间，所以入口地址直接和栈空间都置0即可
-  // 这一步只是为当前任务绑定一段空间用于储存寄存器组，并将其绑定到一个task对象
-  task_init(&task_manager.first_task, "first task", 0, 0, 0);
+  // 1.声明第一个任务的符号
+  void first_task_entry(void);
 
-  // 3.将当前任务执行第一个任务
+  // 2.确定第一个任务进程需要的空间大小
+  extern char s_first_task[], e_first_task[];
+  uint32_t copy_size =
+      (uint32_t)(e_first_task - s_first_task);  // 进程所需空间大小
+  uint32_t alloc_size =
+      up2(copy_size, MEM_PAGE_SIZE) +
+      10 *
+          MEM_PAGE_SIZE;  // 需要为进程分配的内存大小，按1kb对齐,并多拿10页当作堆栈空间
+  ASSERT(copy_size < alloc_size);
+
+  uint32_t task_start_addr =
+      (uint32_t)first_task_entry;  // 获取第一个任务的入口地址
+
+  // 3.初始化第一个任务,因为当前为操作系统进程，sp初始值随意赋值都可，
+  //  因为当前进程已开启，cpu会在切换的时候保留真实的状态，即真实的sp值
+  task_init(&task_manager.first_task, "first task", task_start_addr,
+            task_start_addr + alloc_size, TASK_FLAGS_USER);
+
+  // 4.初始化进程的起始堆空间
+  task_manager.first_task.heap_start =
+      (uint32_t)e_first_task;  // 堆起始地址紧靠程序bss段之后
+  task_manager.first_task.heap_end = (uint32_t)e_first_task;  // 堆大小初始为0
+
+  // 6.将当前任务执行第一个任务
   task_manager.curr_task = &task_manager.first_task;
 
-  // 4.将当前任务状态设置为运行态
-  task_start(task_manager.curr_task);
+  // 7.将当前页表设置为第一个任务的页表
+  mmu_set_page_dir(task_manager.first_task.page_dir);
 
+  // 8.将当前任务状态设置为运行态
   task_manager.curr_task->state = TASK_RUNNING;
+
+  // 9.进程的各个段还只是在虚拟地址中，所以要为各个段分配物理地址页空间，并进行映射
+  memory_alloc_page_for(task_start_addr, alloc_size, PTE_FLAG | PTE_AP_USR);
+
+  // 10.将任务进程各个段从内核四个段之后的紧邻位置，拷贝到已分配好的且与虚拟地址对应的物理地址空间，实现代码隔离
+  kernel_memcpy(first_task_entry, s_first_task, alloc_size);
+
+  // 11.将任务设为可被调度
+  task_start(&task_manager.first_task);
 }
 
 /**
