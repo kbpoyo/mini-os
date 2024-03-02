@@ -20,6 +20,12 @@
         "log.h": "c",
         "nandflash.h": "c",
         "disk.h": "c",
-        "uart.h": "c"
+        "uart.h": "c",
+        "dev.h": "c",
+        "file.h": "c",
+        "features.h": "c",
+        "fcntl.h": "c",
+        "fs.h": "c",
+        "mutex.h": "c"
     }
 }

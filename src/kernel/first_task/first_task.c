@@ -72,7 +72,10 @@ int first_main(void) {
   //     wait(&status);
   // }
 
-  print_msg("hello world %d\n", 10);
+  while (1) {
+    print_msg("hello world %d\n", 10);
+    msleep(100);
+  }
 
   return 0;
 }

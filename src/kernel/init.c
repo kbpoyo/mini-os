@@ -8,6 +8,7 @@
 #include "dev/nandflash.h"
 #include "dev/timer.h"
 #include "dev/uart.h"
+#include "fs/fs.h"
 #include "tools/klib.h"
 #include "tools/log.h"
 
@@ -59,11 +60,11 @@ void write_fs_nand() {
  */
 void move_to_first_task(void) {
   // 1.获取当前任务
-  task_t *curr = task_current();
+  task_t* curr = task_current();
   ASSERT(curr != 0);
 
   // 2.获取当前任务的tss结构
-  register_group_t *reg = &(curr->reg_group);
+  register_group_t* reg = &(curr->reg_group);
 
   // 设置用户栈和内核栈并进行任务跳转且切换模式到用户模式
   __asm__ __volatile__(
@@ -90,22 +91,11 @@ int kernel_init() {
 
   task_first_init();
 
-  // task_t* task_1 = task_alloc();
-  // int ret = task_init(task_1, "task_1", (uint32_t)task_test_1,
-  //                     (uint32_t)&stack_1[1024], TASK_FLAGS_SYSTEM);
-  // ASSERT(ret != -1);
-
-  // task_t* task_2 = task_alloc();
-  // ret = task_init(task_2, "task_2", (uint32_t)task_test_2,
-  //                 (uint32_t)&stack_2[1024], TASK_FLAGS_SYSTEM);
-  // ASSERT(ret != -1);
-
-  // task_start(task_1);
-  // task_start(task_2);
+  fs_init();
 
   // timer_init();
 
-  cpu_irq_start();
+  // cpu_irq_start();
 
   move_to_first_task();
 }

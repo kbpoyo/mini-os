@@ -31,7 +31,7 @@ static dev_desc_t *dev_des_table[] = {
 
 // 设备表，用于获取特定设备
 static device_t dev_table[DEV_TABLE_SIZE]
-    __attribute__((section(".data"), aligned(4))) = {0};
+    __attribute__((section(".data"), aligned(4))) = {{0}};
 
 /**
  * @brief 根据设备id判断设备是否存在

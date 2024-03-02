@@ -21,7 +21,7 @@
 
 // 系统磁盘表
 static disk_t disk_table[DISK_CNT]
-    __attribute__((section(".data"), aligned(4))) = {0};
+    __attribute__((section(".data"), aligned(4))) = {{0}};
 // 磁盘锁
 static mutex_t mutex;
 
@@ -122,7 +122,7 @@ static void print_disk_info(disk_t *disk) {
   for (int i = 0; i < DISK_PRIMARY_PART_CNT; ++i) {
     partinfo_t *part_info = disk->partinfo + i;
     if (part_info->type != FS_INVALID) {
-      log_printf("\t%s: type: %x, start sector: %d, sector count: %d\n",
+      log_printf("\t%s: type: 0x%x, start sector: %d, sector count: %d\n",
                  part_info->name, part_info->type, part_info->start_sector,
                  part_info->total_sectors);
     }
@@ -135,6 +135,9 @@ static void print_disk_info(disk_t *disk) {
  */
 void disk_init(void) {
   log_printf("disk init...\n");
+
+  // 打开nandflash
+  nand_open();
 
   kernel_memset(disk_table, 0, sizeof(disk_table));
 
@@ -220,7 +223,7 @@ int disk_read(device_t *dev, int addr, char *buf, int size) {
   // TODO:加锁
   mutex_lock(disk->mutex);  // 确保磁盘io操作的原子性
 
-  int cnt = disk_read_data(disk, addr, buf, size);
+  int cnt = disk_read_data(disk, part_info->start_sector + addr, buf, size);
   if (cnt < 0) {
     log_error("disk[%s] read error: start sector %d, count: %d", disk->name,
               addr, size);
@@ -260,7 +263,7 @@ int disk_write(device_t *dev, int addr, char *buf, int size) {
   // TODO:加锁
   mutex_lock(disk->mutex);  // 确保磁盘io操作的原子性
   //
-  int cnt = disk_write_data(disk, addr, buf, size);
+  int cnt = disk_write_data(disk, part_info->start_sector + addr, buf, size);
 
   if (cnt < 0) {
     log_error("disk[%s] read error: start sector %d, count: %d", disk->name,

@@ -13,6 +13,7 @@
 #define TASK_H
 
 #include "common/types.h"
+#include "fs/file.h"
 #include "tools/list.h"
 
 // 定义任务名称缓冲区大小
@@ -87,9 +88,10 @@ typedef struct _task_t {
   list_node_t
       wait_node;  // 用于插入信号量对象的等待队列的节点，标记task正在等待信号量
 
-  task_sp_t task_sp;
+  task_sp_t task_sp;  // 存放内核栈指针
 
-  register_group_t reg_group;  // 任务寄存器组
+  register_group_t reg_group;           // 任务寄存器组
+  file_t *file_table[TASK_OFILE_SIZE];  // 任务进程所拥有的文件表
 
   // uint32_t base_svc_sp; //任务内核栈空间的初始值
 

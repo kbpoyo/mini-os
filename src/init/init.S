@@ -186,6 +186,7 @@ _exc_handler_irq:
 //当pc在传输列表时，对应ldm指令可以使用基地址回写，通常用来
 //异常模式下返回
 _exc_handler_data_abort:
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)   //进入svc模式使用内核栈
     stmfd sp, {r0-r14}^ 
     nop
     sub sp, #60
@@ -194,7 +195,8 @@ _exc_handler_data_abort:
     ldr pc, =KERNEL_ADDR
 
 _exc_handler_prefetch_abort:
-    stmfd sp, {r0-r14}^
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)   //进入svc模式使用内核栈
+    stmfd sp, {r0-r14}^ 
     nop
     sub sp, #60
 
@@ -203,7 +205,8 @@ _exc_handler_prefetch_abort:
     
 
 _exc_handler_undef:
-    stmfd sp, {r0-r14}^
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)   //进入svc模式使用内核栈
+    stmfd sp, {r0-r14}^ 
     nop
     sub sp, #60
 

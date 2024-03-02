@@ -16,6 +16,53 @@ static task_t task_table[TASK_COUNT] __attribute__((aligned(4)));
 static mutex_t task_table_lock;
 
 /**
+ * @brief 根据文件描述符从当前任务进程的打开文件表中返回对应的文件结构指针
+ *
+ * @param fd 文件描述符
+ * @return file_t*
+ */
+file_t *task_file(int fd) {
+  file_t *file = (file_t *)0;
+
+  if (fd >= 0 && fd < TASK_OFILE_SIZE) {
+    file = task_current()->file_table[fd];
+  }
+
+  return file;
+}
+
+/**
+ * @brief 将已分配的文件结构指针放入当前进程的打开文件表中，并返回文件描述符
+ *
+ * @param file 已从系统file_table中分配的文件结构指针
+ * @return int 文件描述符
+ */
+int task_alloc_fd(file_t *file) {
+  task_t *task = task_current();
+  for (int i = 0; i < TASK_OFILE_SIZE; ++i) {
+    file_t *p = task->file_table[i];
+    if (p == (file_t *)0) {  // 打开文件表中的第i项未分配，对其进行分配操作
+      task->file_table[i] = file;
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * @brief 从当前进程的打开文件表中移除文件描述符对应的文件结构指针
+ *
+ * @param fd
+ */
+void task_remove_fd(int fd) {
+  // 清空文件描述符对应的内存资源即可
+  if (fd >= 0 && fd < TASK_OFILE_SIZE) {
+    task_current()->file_table[fd] = (file_t *)0;
+  }
+}
+
+/**
  * @brief 分配task任务结构
  *
  * @return task_t*
@@ -69,9 +116,9 @@ static int registers_init(task_t *task, uint32_t entry, uint32_t sp,
   task->reg_group.r15 = entry;
 
   // 为任务分配一页内核栈，并将寄存器组拷贝到内核栈中，等待任务的初始化
-  uint32_t sp_addr = memory_alloc_page(1);
-  if (task != &task_manager.first_task) {  // 对非first_task进行寄存器初始化
-    sp_addr = sp_addr + MEM_PAGE_SIZE - sizeof(register_group_t);
+  uint32_t sp_addr = memory_alloc_page(1) + MEM_PAGE_SIZE;
+  if (task != &(task_manager.first_task)) {  // 对非first_task进行寄存器初始化
+    sp_addr = sp_addr - sizeof(register_group_t);
     kernel_memcpy((void *)sp_addr, &(task->reg_group),
                   sizeof(register_group_t));
   }

@@ -427,7 +427,7 @@ void memory_init() {
              mem_free);
 
   // 判断mem_free是否已越过可用数据区
-  ASSERT(mem_free < (uint8_t *)MEM_EXT_START);
+  ASSERT(mem_free < ((uint8_t *)MEM_EXT_START - 2 * STACK_SVC_SIZE));
 
   // 创建内核的页表映射
   create_kernal_table();
