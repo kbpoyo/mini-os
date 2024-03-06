@@ -52,9 +52,11 @@ typedef enum _task_state_t {
 } task_state_t;
 
 #pragma pack(1)
-typedef struct _task_sp_t {
-  uint32_t svc_sp;
-} task_sp_t;
+typedef struct _task_switch_t {
+  uint32_t svc_sp;  // 记录内核栈顶位置
+  uint32_t page_dir;
+
+} task_switch_t;
 
 typedef struct _register_group_t {
   uint32_t spsr, cpsr;
@@ -64,19 +66,15 @@ typedef struct _register_group_t {
 
 // 定义可执行任务的数据结构,即PCB进程控制块，书p406
 typedef struct _task_t {
-  task_state_t state;  // 任务状态
-  // struct _task_t *parent;   //父进程控制块的地址
-  int pid;  // 进程id
-  // int status;               //进程退出的状态值
-
-  // uint32_t heap_start;      //进程堆空间的起始地址
-  // uint32_t heap_end;        //进程堆空间的结束地址
+  task_state_t state;      // 任务状态
+  struct _task_t *parent;  // 父进程控制块的地址
+  int pid;                 // 进程id
+  int status;              // 进程退出的状态值
 
   int slice_max;   // 任务所能拥有的最大时间分片数
   int slice_curr;  // 任务当前的所拥有的时间分片数
   int sleep;       // 当前任务延时的时间片数
 
-  uint32_t page_dir;    // 任务页目录表
   uint32_t heap_start;  // 堆起始地址
   uint32_t heap_end;    // 堆结束地址
 
@@ -88,12 +86,11 @@ typedef struct _task_t {
   list_node_t
       wait_node;  // 用于插入信号量对象的等待队列的节点，标记task正在等待信号量
 
-  task_sp_t task_sp;  // 存放内核栈指针
+  task_switch_t task_sw;  // 存放内核栈指针和任务页目录表，随着进程切换而切换
+  uint32_t svc_sp_top;  // 记录内核栈的起始位置
 
   register_group_t reg_group;           // 任务寄存器组
   file_t *file_table[TASK_OFILE_SIZE];  // 任务进程所拥有的文件表
-
-  // uint32_t base_svc_sp; //任务内核栈空间的初始值
 
 } task_t;
 
@@ -119,7 +116,6 @@ typedef struct _task_manager_t {
 
 // 定义任务入口参数的数据结构
 typedef struct _task_args_t {
-  uint32_t ret_addr;  // 模拟调用函数压入的返回地址
   uint32_t argc;      // 入口参数个数
   char *const *argv;  // 入口参数的字符串数组
 } task_args_t;
@@ -144,9 +140,9 @@ void task_start(task_t *task);
 void sys_sleep(uint32_t ms);
 void sys_yield(void);
 int sys_getpid(void);
-// int sys_fork(void);
-// int sys_execve(char *name, char * const *argv, char * const *env );
-// void sys_exit(int status);
-// int sys_wait(int *status);
+int sys_fork(void);
+int sys_execve(char *name, char *const *argv, char *const *env);
+void sys_exit(int status);
+int sys_wait(int *status);
 
 #endif

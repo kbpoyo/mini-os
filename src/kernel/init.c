@@ -41,17 +41,20 @@ void task_test_2(void) {
 }
 
 void write_fs_nand() {
-  // char* buff = (char*)0x30200000;
-  // int sector_count = 32 * 1024 * 1024 / 512;
+  char* buff = (char*)0x30200000;
+  int sector_count = 32 * 1024 * 1024 / 512;
 
-  // nand_open();
+  nand_open();
 
-  // for (int i = 0; i < sector_count; ++i) {
-  //   int ret = nand_write(i, buff, 1);
-  //   buff += 512;
-  // }
+  for (int i = 0; i < sector_count; ++i) {
+    int ret = nand_write(i, buff, 1);
+    buff += 512;
+    if (i % 256 == 0) {
+      log_printf("write block: %d\n", i + 1);
+    }
+  }
 
-  // nand_close();
+  nand_close();
 }
 
 /**
@@ -74,7 +77,7 @@ void move_to_first_task(void) {
       "msr spsr, %[user_cpsr]\n"
       "push {%[entry]}\n"
       "ldmfd sp!, {pc}^\n" ::[user_sp] "r"(reg->r13),
-      [svc_cpsr] "r"(CPU_MODE_SVC), [svc_sp] "r"(curr->task_sp.svc_sp),
+      [svc_cpsr] "r"(CPU_MODE_SVC), [svc_sp] "r"(curr->task_sw.svc_sp),
       [user_cpsr] "r"(CPU_MODE_USER), [entry] "r"(reg->r15));
 }
 
@@ -85,6 +88,8 @@ int kernel_init() {
 
   irq_init();
 
+  // write_fs_nand();
+
   memory_init();
 
   task_manager_init();
@@ -93,9 +98,9 @@ int kernel_init() {
 
   fs_init();
 
-  // timer_init();
+  timer_init();
 
-  // cpu_irq_start();
+  cpu_irq_start();
 
   move_to_first_task();
 }

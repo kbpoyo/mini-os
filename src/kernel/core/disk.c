@@ -293,7 +293,7 @@ int disk_control(device_t *dev, int cmd, int arg0, int arg1) { return -1; }
  *
  * @param dev
  */
-void disk_close(device_t *dev) {}
+void disk_close(device_t *dev) { nand_close(); }
 
 // 操作disk结构的函数表
 dev_desc_t dev_disk_desc = {.dev_name = "disk",

@@ -103,7 +103,7 @@ static int fat_read_sector(fat_t *fat, int sector) {
     return 0;
   }
 
-  // 读取信的扇区，并记录扇区号
+  // 读取新的扇区，并记录扇区号
   int cnt = dev_read(fat->fs->dev_id, sector, fat->fat_buffer, 1);
   if (cnt == 1) {
     fat->curr_sector = sector;
@@ -572,7 +572,7 @@ int fatfs_mount(struct _fs_t *fs, int major, int minor) {
 
 mount_failed:
   if (dbr) {
-    memory_free_page((uint32_t)dbr);
+    memory_free_page((uint32_t)dbr, 1);
   }
 
   dev_close(dev_id);
@@ -589,7 +589,7 @@ void fatfs_unmount(struct _fs_t *fs) {
   fat_t *fat = (fat_t *)fs->data;
   dev_close(fs->dev_id);
 
-  memory_free_page((uint32_t)fat->fat_buffer);
+  memory_free_page((uint32_t)fat->fat_buffer, 1);
 }
 
 /**
@@ -836,6 +836,9 @@ void fatfs_close(file_t *file) {
   item->DIR_FstClusHI = (uint16_t)(file->sblk << 16);
   item->DIR_FstClusLo = (uint16_t)(file->sblk & 0xffff);
   write_dir_entry(fat, item, file->p_index);
+
+  // 将写操作固化到磁盘
+  dev_close(fat->fs->dev_id);
 }
 
 /**

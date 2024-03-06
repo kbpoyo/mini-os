@@ -142,7 +142,7 @@ static inline uint32_t pde_to_pt_addr(pde_t *pde) {
  * @return uint32_t 返回的页的地址
  */
 static inline uint32_t pte_to_pg_addr(pte_t *pte) {
-  // 高20位为页的物理地址有效位，将其左移10位，及按1kb对齐后才是该页的物理地址
+  // 高22位为页的物理地址有效位，将其左移10位，及按1kb对齐后才是该页的物理地址
   return pte->domain.phy_page_addr << 10;
 }
 
@@ -165,6 +165,9 @@ static inline void mmu_set_page_dir(uint32_t paddr) {
   // 设置cr2寄存器的高18位为页目录表的地址，因为按16kb对齐，所以
   // 页目录表的起始地址page_dir的高18位才为有效位，低14位为0，将cr2的低14位就设置为0
   cpu_cr2_write(paddr);
+
+  // 使整个tlb无效
+  disable_tlb();
 }
 
 void enable_mmu();

@@ -1,4 +1,3 @@
-
 #include "applib/lib_syscall.h"
 
 #include <stdlib.h>
@@ -103,7 +102,7 @@ void yield(void) {
  * @param ...
  * @return int
  */
-int open(const char *name, int flags, ...) {
+int _open(const char *name, int flags, ...) {
   syscall_args_t args;
   args.id = SYS_open;
   args.arg0 = (uint32_t)name;
@@ -120,7 +119,7 @@ int open(const char *name, int flags, ...) {
  * @param len
  * @return int
  */
-int read(int file, char *ptr, int len) {
+int _read(int file, char *ptr, int len) {
   syscall_args_t args;
   args.id = SYS_read;
   args.arg0 = file;
@@ -137,7 +136,7 @@ int read(int file, char *ptr, int len) {
  * @param len
  * @return int
  */
-int write(int file, char *ptr, int len) {
+int _write(int file, char *ptr, int len) {
   syscall_args_t args;
   args.id = SYS_write;
   args.arg0 = file;
@@ -153,7 +152,7 @@ int write(int file, char *ptr, int len) {
  * @param file
  * @return int
  */
-int close(int file) {
+int _close(int file) {
   syscall_args_t args;
   args.id = SYS_close;
   args.arg0 = file;
@@ -169,7 +168,7 @@ int close(int file) {
  * @param dir
  * @return int
  */
-int lseek(int file, int offset, int dir) {
+int _lseek(int file, int offset, int dir) {
   syscall_args_t args;
   args.id = SYS_lseek;
   args.arg0 = file;
@@ -185,7 +184,7 @@ int lseek(int file, int offset, int dir) {
  * @param file
  * @return int
  */
-int isatty(int file) {
+int _isatty(int file) {
   syscall_args_t args;
   args.id = SYS_isatty;
   args.arg0 = file;
@@ -199,7 +198,7 @@ int isatty(int file) {
  * @param st
  * @return int
  */
-int fstat(int file, struct stat *st) {
+int _fstat(int file, struct stat *st) {
   syscall_args_t args;
   args.id = SYS_fstat;
   args.arg0 = file;
@@ -214,7 +213,7 @@ int fstat(int file, struct stat *st) {
  * @param incr
  * @return void*
  */
-char *sbrk(ptrdiff_t incr) {
+char *_sbrk(ptrdiff_t incr) {
   syscall_args_t args;
   args.id = SYS_sbrk;
   args.arg0 = (uint32_t)incr;
@@ -270,24 +269,24 @@ int wait(int *status) {
 //  * @return DIR*
 //  */
 // DIR *opendir(const char *path) {
-//     DIR *dir = (DIR*)malloc(sizeof(DIR));
-//     if (dir == (DIR*)0) {
-//         return (DIR*)0;
-//     }
+//   DIR *dir = (DIR *)malloc(sizeof(DIR));
+//   if (dir == (DIR *)0) {
+//     return (DIR *)0;
+//   }
 
-//     syscall_args_t args;
-//     args.id = SYS_opendir;
-//     args.arg0 = (uint32_t)path;
-//     args.arg1 = (uint32_t)dir;
+//   syscall_args_t args;
+//   args.id = SYS_opendir;
+//   args.arg0 = (uint32_t)path;
+//   args.arg1 = (uint32_t)dir;
 
-//     int err = sys_call(&args);
+//   int err = sys_call(&args);
 
-//     if (err < 0) {
-//         free(dir);
-//         return (DIR*)0;
-//     }
+//   if (err < 0) {
+//     free(dir);
+//     return (DIR *)0;
+//   }
 
-//     return dir;
+//   return dir;
 // }
 
 /**
@@ -317,14 +316,14 @@ struct dirent *readdir(DIR *dir) {
 //  * @return int
 //  */
 // int closedir(DIR *dir) {
-//     syscall_args_t args;
-//     args.id = SYS_closedir;
-//     args.arg0 = (uint32_t)dir;
+//   syscall_args_t args;
+//   args.id = SYS_closedir;
+//   args.arg0 = (uint32_t)dir;
 
-//     int err = sys_call(&args);
-//     free(dir);
+//   int err = sys_call(&args);
+//   free(dir);
 
-//     return err;
+//   return err;
 // }
 
 /**

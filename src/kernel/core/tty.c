@@ -172,6 +172,15 @@ int tty_write(device_t *dev, int addr, char *buf, int size) {
       }
     }
 
+    if (c == '\r' && (tty->oflags & TTY_OCRLF)) {
+      sem_wait(&tty->out_sem);
+      int err = tty_fifo_put(&tty->out_fifo, c);
+      c = '\n';
+      if (err < 0) {
+        break;
+      }
+    }
+
     // 先获取到访问缓冲区一个字节资源的资格
     // 若缓冲区写满就阻塞住，等待中断程序将缓冲区消耗掉再写
     sem_wait(&tty->out_sem);
@@ -227,6 +236,15 @@ int tty_read(device_t *dev, int addr, char *buf, int size) {
         }
         break;
       case '\n':
+        if ((tty->iflags & TTY_INCLR) && len < size - 1) {
+          // 开启了换行转换
+          *(pbuf++) = '\r';
+          len++;
+        }
+        *(pbuf++) = '\n';
+        len++;
+        break;
+      case '\r':
         if ((tty->iflags & TTY_INCLR) && len < size - 1) {
           // 开启了换行转换
           *(pbuf++) = '\r';

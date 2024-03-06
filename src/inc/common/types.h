@@ -4,9 +4,9 @@
  * @brief  定义各种数据类型
  * @version 0.1
  * @date 2023-01-04
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
 #ifndef TYPES_H
@@ -28,14 +28,6 @@ typedef unsigned short uint16_t;
 #ifndef _UINT32_T_DECLARED
 #define _UINT32_T_DECLARED
 typedef unsigned long uint32_t;
-
-#define NULL 0
-#define TRUE    1
-#define FALSE   0
-
 #endif
-
-
-
 
 #endif

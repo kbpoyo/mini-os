@@ -43,24 +43,22 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/src/inc/
     ${PROJECT_SOURCE_DIR}/src/kernel/inc
+    ${PROJECT_SOURCE_DIR}/newlib/arm-myos/include
 )
 
 # # 底层的若干子项目：含内核及应用程序
-# add_subdirectory(./source/boot)
-# add_subdirectory(./source/loader)
-# add_subdirectory(./source/kernel)
-# add_subdirectory(./source/applib)
-# add_subdirectory(./source/shell)
-# add_subdirectory(./source/snake)
-# add_subdirectory(./source/init)
-# add_subdirectory(./source/loop)
+add_subdirectory(./src/applib)
+add_subdirectory(./src/shell)
+add_subdirectory(./src/snake)
+add_subdirectory(./src/collapse)
+add_subdirectory(./src/loop)
 add_subdirectory(./src/kernel)
 add_subdirectory(./src/init)
 
 # # 添加编译依赖，先生成app库，再生成kernel和shell
 # # 不加则cmake则可能先编译shell和kernel，而缺少libapp，导致编译错误
-# add_dependencies(init app)       
-# add_dependencies(shell app)
-# add_dependencies(snake app)
+add_dependencies(collapse app)       
+add_dependencies(shell app)
+add_dependencies(snake app)
 # add_dependencies(kernel app)
-# add_dependencies(loop app)
+add_dependencies(loop app)

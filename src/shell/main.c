@@ -17,8 +17,8 @@
 #include <string.h>
 #include <sys/file.h>
 
+#include "core/tty.h"
 #include "fs/file.h"
-#include "dev/tty.h"
 #include "lib_syscall.h"
 
 static char cmd_buf[512];
@@ -162,7 +162,7 @@ static int do_ls(int argc, const char **argv) {
  */
 static int do_less(int argc, const char **argv) {
   optind = 0;
-  int line_mode = 0;  //是否开启逐行读取
+  int line_mode = 0;  // 是否开启逐行读取
   int ch;
   // getopt函数解析参数列表，l:表示查找-l选项，且必须紧跟着参数，
   // h表示查找-h选项，且不需要跟参数
@@ -188,33 +188,32 @@ static int do_less(int argc, const char **argv) {
     }
   }
 
-
-
   if (optind >
       argc - 1) {  // argc - 1
                    // 为message的索引，optind>argc-1表示此次调用未携带message
-    fprintf(stderr, ESC_COLOR_ERROR "no file input\n"ESC_COLOR_DEFAULT);
+    fprintf(stderr, ESC_COLOR_ERROR "no file input\n" ESC_COLOR_DEFAULT);
     return -1;
   }
 
-  //打开文件
+  // 打开文件
   FILE *file = fopen(argv[optind], "r");
   if (file == NULL) {
-    fprintf(stderr, ESC_COLOR_ERROR"open file failed. %s"ESC_COLOR_DEFAULT, argv[optind]);
+    fprintf(stderr, ESC_COLOR_ERROR "open file failed. %s" ESC_COLOR_DEFAULT,
+            argv[optind]);
     return -1;
   }
-  
+
   int buf_len = 255;
   char *buf = (char *)malloc(buf_len);
   if (line_mode == 0) {
-    //一次性读取完文件
+    // 一次性读取完文件
     while (fgets(buf, buf_len, file) != NULL) {
       puts(buf);
     }
   } else {
-    //取消输入行缓存，使输入及时写入key中
+    // 取消输入行缓存，使输入及时写入key中
     setvbuf(stdin, NULL, _IONBF, 0);
-    //关闭TTY设备回显
+    // 关闭TTY设备回显
     ioctl(0, TTY_CMD_ECHO, 0, 0);
     while (1) {
       char *b = fgets(buf, buf_len, file);
@@ -223,25 +222,20 @@ static int do_less(int argc, const char **argv) {
       }
 
       puts(buf);
-      //用按键的方式进行下一行的读取
+      // 用按键的方式进行下一行的读取
       char key;
       while ((key = getchar()) != 'n') {
         if (key == 'q') {
           goto less_quit;
         }
       }
-      
     }
-less_quit:
-    //恢复输入行缓存
+  less_quit:
+    // 恢复输入行缓存
     setvbuf(stdin, NULL, _IOLBF, BUFSIZ);
-    //打开TTY设备回显
+    // 打开TTY设备回显
     ioctl(0, TTY_CMD_ECHO, 1, 0);
-
   }
-
-
-  
 
   free(buf);
   fclose(file);
@@ -250,10 +244,10 @@ less_quit:
 
 /**
  * @brief 进行文件拷贝操作
- * 
- * @param argc 
- * @param argv 
- * @return int 
+ *
+ * @param argc
+ * @param argv
+ * @return int
  */
 static int do_cp(int argc, const char **argv) {
   if (argc < 3) {
@@ -266,7 +260,7 @@ static int do_cp(int argc, const char **argv) {
   to = fopen(argv[2], "wbt");
   if (!from || !to) {
     fprintf(stderr, "open file failed\n");
-    goto  cp_failed;
+    goto cp_failed;
   }
 
   int buf_len = 255;
@@ -287,15 +281,14 @@ cp_failed:
   }
 
   return 0;
-
 }
 
 /**
  * @brief 删除文件
- * 
- * @param argc 
- * @param argv 
- * @return int 
+ *
+ * @param argc
+ * @param argv
+ * @return int
  */
 static int do_rm(int argc, const char **argv) {
   if (argc < 2) {
@@ -420,7 +413,7 @@ static void run_exec_file(const char *path, int argc, const char **argv) {
     fprintf(stderr, ESC_COLOR_ERROR "fork failed: %s" ESC_COLOR_DEFAULT, path);
   } else if (pid == 0) {
     // 2.子进程加载外部程序
-    int err = execve(path, (char * const *)argv, (char *const *) 0);
+    int err = execve(path, (char *const *)argv, (char *const *)0);
     if (err < 0) {
       fprintf(stderr, "exec failed: %s\n", path);
     }
@@ -430,35 +423,39 @@ static void run_exec_file(const char *path, int argc, const char **argv) {
     // 3.父进程等待任意子进程结束，并回收其资源
     int cpid = wait(&status);
     if (status != 0) {
-      fprintf(stderr, ESC_COLOR_ERROR"process %s exception result: %d, pid=%d\n"ESC_COLOR_DEFAULT, path, status, pid);
+      fprintf(stderr,
+              ESC_COLOR_ERROR
+              "process %s exception result: %d, pid=%d\n" ESC_COLOR_DEFAULT,
+              path, status, pid);
     } else {
-      fprintf(stderr, "process %s exit result: %d, pid=%d\n", path, status, pid);
+      fprintf(stderr, "process %s exit result: %d, pid=%d\n", path, status,
+              pid);
     }
   }
 }
 
 /**
  * @brief 根据文件名判断文件是否存在
- * 
- * @param file_name 
- * @return const char* 
+ *
+ * @param file_name
+ * @return const char*
  */
-static const char* find_exec_path(const char *file_name) {
-    static char path[255];
+static const char *find_exec_path(const char *file_name) {
+  static char path[255];
 
-    int fd = open(file_name, 0);
+  int fd = open(file_name, 0);
+  if (fd < 0) {
+    sprintf(path, "%s.elf", file_name);
+    fd = open(path, 0);
     if (fd < 0) {
-        sprintf(path, "%s.elf", file_name);
-        fd = open(path, 0);
-        if (fd < 0) {
-            return (const char * )0;
-        }
-        close(fd);
-        return path;
-    } else {
-        close(fd);
-        return file_name;
+      return (const char *)0;
     }
+    close(fd);
+    return path;
+  } else {
+    close(fd);
+    return file_name;
+  }
 }
 
 int main(int argc, char **argv) {
@@ -514,19 +511,14 @@ int main(int argc, char **argv) {
       continue;
     }
 
-
-
     // 5.获取到的为磁盘上的可执行程序，需要进行加载运行
     const char *path = find_exec_path(argv[0]);
     if (path) {
       run_exec_file(path, argc, argv);
       continue;
     } else {
-
       fprintf(stderr, ESC_COLOR_ERROR "Unknown command: %s\n" ESC_COLOR_DEFAULT,
               cli.curr_input);
     }
-    
-
   }
 }

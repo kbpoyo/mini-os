@@ -12,11 +12,11 @@
 #ifndef LIB_SYSCALL_H
 #define LIB_SYSCALL_H
 
+#include <sys/stat.h>
+
 #include "common/os_config.h"
 #include "common/types.h"
-#include "core/syscall.h"
-// #include "dev/tty.h"
-#include <sys/stat.h>
+#include "core/tty.h"
 
 #pragma pack(1)
 /**
@@ -39,30 +39,29 @@ void print_msg(const char *fmt, int arg);
 // 进程相关系统调用
 int getpid(void);
 void msleep(int ms);
-int fork(void);
-int execve(const char *name, char *const *argv, char *const *env);
+int _fork(void);
+int _execve(const char *name, char *const *argv, char *const *env);
 void yield(void);
-int wait(int *status);
+int _wait(int *status);
 void _exit(int status);
 
 // 提供给newlib库的系统调用
 // 文件操作相关系统调用
-int open(const char *name, int flags, ...);
-int read(int file, char *ptr, int len);
-int write(int file, char *ptr, int len);
-int close(int file);
-int lseek(int file, int offset, int dir);
+int _open(const char *name, int flags, ...);
+int _read(int file, char *ptr, int len);
+int _write(int file, char *ptr, int len);
+int _close(int file);
+int _lseek(int file, int offset, int dir);
 int ioctl(int file, int cmd, int arg0, int arg1);
-int unlink(const char *path);
+int _unlink(const char *path);
 
-int isatty(int file);
-int fstat(int file, struct stat *st);
+int _isatty(int file);
+int _fstat(int file, struct stat *st);
 
-typedef long int ptrdiff_t;
-char *sbrk(ptrdiff_t incr);
+// typedef long int ptrdiff_t;
+char *_sbrk(ptrdiff_t incr);
 
 int dup(int file);
-
 // 文件目录项结构
 typedef struct dirent {
   int index;
@@ -78,8 +77,8 @@ typedef struct _DIR {
 } DIR;
 
 // 目录操作的系统调用
-//  DIR *opendir(const char *path);
+DIR *opendir(const char *path);
 struct dirent *readdir(DIR *dir);
-// int closedir(DIR *dir);
+int closedir(DIR *dir);
 
 #endif

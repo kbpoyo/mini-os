@@ -14,68 +14,33 @@
 #include "tools/log.h"
 
 int first_main(void) {
-  // int count = 3;
-  // int pid = fork();
-
-  // for (;;) {
-  //     // print_msg("pid=%d", pid);
-  //     if (pid == 0) {
-  //         // print_msg("child pid=%d", getpid());
-  //         // print_msg("count=%d", count++);
-  //         char const *argv[] = {"arg0", "arg1", "arg2", "arg3"};
-  //         execve("/shell.elf", argv, 0);
-  //     } else {
-  //         // print_msg("parent pid=%d", getpid());
-  //         // print_msg("count=%d", count);
-  //         count += 2;
-
-  //     }
-  //     //msleep(100);
-  // }
-
-  // int pid;
-  // int i;
-  // for (i = 0; i < 1; ++i) {
-  //     pid = fork();
-  //     if (pid == 0)
-  //         break;
-  // }
-
-  // char * const argv[] = {"arg0", "arg1", "arg2", "arg3", 0};
-  // if (pid != 0) execve("/shell.elf", argv, 0);
-
-  // for (;;)
-  // {
-  // }
-
-  // //为每个tty设备创建一个进程
-  // for (int i = 0; i < 1; ++i) {
-  //     int pid = fork();
-  //     if (pid < 0) {
-  //         print_msg("create shell failed.", 0);
-  //         break;
-  //     } else if (pid == 0) {
-  //         char tty_num[] = "/dev/tty?";
-  //         tty_num[sizeof(tty_num) - 2] = i + '0';
-  //         char * const argv[] = {tty_num, 0};
-  //         execve("shell.elf", argv, 0);
-  //         while (1)   {
-  //             msleep(1000);
-  //         }
-
-  //     }
-  // }
-
-  // for (;;) {
-  //     //回收所有孤儿进程
-  //     int status = 0;
-  //     wait(&status);
-  // }
-
-  while (1) {
-    print_msg("hello world %d\n", 10);
-    msleep(100);
+  // 为每个tty设备创建一个进程
+  for (int i = 0; i < 1; ++i) {
+    int pid = fork();
+    if (pid < 0) {
+      print_msg("create shell failed.", 0);
+      break;
+    } else if (pid == 0) {
+      char tty_num[] = "/dev/tty?";
+      tty_num[sizeof(tty_num) - 2] = i + '0';
+      char* const argv[] = {tty_num, 0};
+      execve("shell.elf", argv, 0);
+      while (1) {
+        msleep(1000);
+      }
+    }
   }
+
+  for (;;) {
+    // 回收所有孤儿进程
+    int status = 0;
+    wait(&status);
+  }
+
+  // while (1) {
+  //   print_msg("hello world %d\n", 10);
+  //   msleep(1000);
+  // }
 
   return 0;
 }

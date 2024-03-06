@@ -17,6 +17,10 @@ _start:
 
 
 _exc_handler_reset:
+    //
+    mrc p15, 0, r0, cr1, cr0, 0
+    bic r0, #0x1
+    mcr p15, 0, r0, cr1, cr0, 0
     //调试用，确保当前为特权模式
     mrs r0, cpsr
     bic r0, #0x1f
@@ -156,8 +160,16 @@ _init_stack:
 
 
 _exc_handler_swi:
-    stmfd sp!, {r0-r12, lr}
+
+//保存返回地址
+    push {lr}
+//保存用户模式的寄存器组
+    stmfd sp, {r0-r14}^
     nop
+    sub sp, #60
+
+
+//保存用户模式的状态寄存器
     mrs r0, spsr
     push {r0}
 

@@ -11,7 +11,9 @@
 
 #include "core/syscall.h"
 
+#include "core/memory.h"
 #include "core/task.h"
+#include "fs/fs.h"
 #include "tools/log.h"
 
 /**
@@ -25,26 +27,26 @@ void sys_print_msg(const char *fmt, int arg) { log_printf(fmt, arg); }
 static const sys_handler_t sys_table[] = {
     [SYS_sleep] = (sys_handler_t)sys_sleep,
     [SYS_getpid] = (sys_handler_t)sys_getpid,
-    // [SYS_fork] = (sys_handler_t)sys_fork,
-    // [SYS_execve] = (sys_handler_t)sys_execve,
+    [SYS_fork] = (sys_handler_t)sys_fork,
+    [SYS_execve] = (sys_handler_t)sys_execve,
     [SYS_yield] = (sys_handler_t)sys_yield,
     [SYS_printmsg] = (sys_handler_t)sys_print_msg,
-    // [SYS_open] = (sys_handler_t)sys_open,
-    // [SYS_read] = (sys_handler_t)sys_read,
-    // [SYS_write] = (sys_handler_t)sys_write,
-    // [SYS_close] = (sys_handler_t)sys_close,
-    // [SYS_lseek] = (sys_handler_t)sys_lseek,
-    // [SYS_isatty] = (sys_handler_t)sys_isatty,
-    // [SYS_fstat] = (sys_handler_t)sys_fstat,
-    // [SYS_sbrk] = (sys_handler_t)sys_sbrk,
-    // [SYS_dup] = (sys_handler_t)sys_dup,
-    // [SYS_exit] = (sys_handler_t)sys_exit,
-    // [SYS_wait] = (sys_handler_t)sys_wait,
-    // [SYS_opendir] = (sys_handler_t)sys_opendir,
-    // [SYS_readdir] = (sys_handler_t)sys_readdir,
-    // [SYS_closedir] = (sys_handler_t)sys_closedir,
-    // [SYS_ioctl] = (sys_handler_t)sys_ioctl,
-    // [SYS_unlink] = (sys_handler_t)sys_unlink,
+    [SYS_open] = (sys_handler_t)sys_open,
+    [SYS_read] = (sys_handler_t)sys_read,
+    [SYS_write] = (sys_handler_t)sys_write,
+    [SYS_close] = (sys_handler_t)sys_close,
+    [SYS_lseek] = (sys_handler_t)sys_lseek,
+    [SYS_isatty] = (sys_handler_t)sys_isatty,
+    [SYS_fstat] = (sys_handler_t)sys_fstat,
+    [SYS_sbrk] = (sys_handler_t)sys_sbrk,
+    [SYS_dup] = (sys_handler_t)sys_dup,
+    [SYS_exit] = (sys_handler_t)sys_exit,
+    [SYS_wait] = (sys_handler_t)sys_wait,
+    [SYS_opendir] = (sys_handler_t)sys_opendir,
+    [SYS_readdir] = (sys_handler_t)sys_readdir,
+    [SYS_closedir] = (sys_handler_t)sys_closedir,
+    [SYS_ioctl] = (sys_handler_t)sys_ioctl,
+    [SYS_unlink] = (sys_handler_t)sys_unlink,
 
 };
 

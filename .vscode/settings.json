@@ -26,6 +26,9 @@
         "features.h": "c",
         "fcntl.h": "c",
         "fs.h": "c",
-        "mutex.h": "c"
+        "mutex.h": "c",
+        "stat.h": "c",
+        "main.h": "c",
+        "stdlib.h": "c"
     }
 }

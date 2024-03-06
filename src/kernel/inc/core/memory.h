@@ -6,8 +6,8 @@
 #include "ipc/mutex.h"
 #include "tools/bitmap.h"
 
-// 定义任务内核栈分配页数
-#define MEM_TASK_STACK_PAGE_COUNT 4
+// // 定义任务内核栈分配页数
+// #define MEM_TASK_STACK_PAGE_COUNT 4
 
 // 低1mb内存空间
 #define MEM_EXT_START (KERNEL_ADDR + 1024 * 1024)
@@ -16,8 +16,8 @@
 // 虚拟空间中，用户进程的起始地址设置为 0x8000 0000,
 // 以下的空间映射给操作系统使用,即2GB
 #define MEM_TASK_BASE 0x80000000
-// 定义应用程序的栈空间起始地址的虚拟地址,即给每个进程分配了1.5gb的虚拟空间大小
-#define MEM_TASK_STACK_TOP (0xE0000000)
+// 定义应用程序的栈空间起始地址的虚拟地址,即给每个进程分配了1gb的虚拟空间大小
+#define MEM_TASK_STACK_TOP (0xC0000000)
 // 定义每个应用程序的栈空间大小为50页
 #define MEM_TASK_STACK_SIZE (MEM_PAGE_SIZE * 50)
 // 定义分配给每个应用程序的入口参数的空间大小
@@ -66,11 +66,11 @@ typedef struct _memory_map_t {
 
 void memory_init();
 uint32_t memory_creat_uvm(void);
-// int memory_copy_uvm(uint32_t to_page_dir, uint32_t from_page_dir);
-// void memory_destroy_uvm(uint32_t page_dir);
-// int memory_alloc_for_page_dir(uint32_t page_dir, uint32_t vaddr, uint32_t
-// alloc_size, uint32_t privilege); uint32_t memory_get_paddr(uint32_t page_dir,
-// uint32_t vaddr);
+int memory_copy_uvm(uint32_t to_page_dir, uint32_t from_page_dir);
+void memory_destroy_uvm(uint32_t page_dir);
+int memory_alloc_for_page_dir(uint32_t page_dir, uint32_t vaddr,
+                              uint32_t alloc_size, uint32_t privilege);
+uint32_t memory_get_paddr(uint32_t page_dir, uint32_t vaddr);
 
 int memory_alloc_page_for(uint32_t vaddr, uint32_t alloc_size,
                           uint32_t priority);
@@ -78,11 +78,11 @@ int memory_alloc_page_for(uint32_t vaddr, uint32_t alloc_size,
 uint32_t memory_alloc_page(int page_count);
 uint32_t memory_alloc_page_align(int page_count, int align);
 
-void memory_free_page(uint32_t addr);
-// int memory_copy_uvm_data(uint32_t to_vaddr, uint32_t to_page_dir,
-// uint32_t from_vaddr, uint32_t size);
+void memory_free_page(uint32_t addr, int page_count);
+int memory_copy_uvm_data(uint32_t to_vaddr, uint32_t to_page_dir,
+                         uint32_t from_vaddr, uint32_t size);
 
-// char *sys_sbrk(int incr);
+char *sys_sbrk(int incr);
 
 void memory_show_bitmap();
 

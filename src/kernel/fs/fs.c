@@ -13,7 +13,6 @@
 
 #include <sys/file.h>
 
-
 #include "common/boot_info.h"
 #include "common/cpu_instr.h"
 #include "common/os_config.h"
@@ -129,7 +128,7 @@ int path_begin_with(const char *path, const char *str) {
  */
 static void fs_protect(fs_t *fs) {
   if (fs->mutex) {
-    mutex_lock(fs->mutex);
+    // mutex_lock(fs->mutex);
   }
 }
 
@@ -140,7 +139,7 @@ static void fs_protect(fs_t *fs) {
  */
 static void fs_unprotect(fs_t *fs) {
   if (fs->mutex) {
-    mutex_unlock(fs->mutex);
+    // mutex_unlock(fs->mutex);
   }
 }
 

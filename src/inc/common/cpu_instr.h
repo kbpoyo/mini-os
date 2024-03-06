@@ -161,4 +161,12 @@ __attribute__((always_inline)) static uint32_t cpu_cr6_read() {
   return ret;
 }
 
+/**
+ * @brief 写入cr8，使整个tlb无效
+ *
+ */
+__attribute__((always_inline)) static void disable_tlb() {
+  __asm__ __volatile__("mcr p15, 0, r0, c8, c7, 0\n");
+}
+
 #endif

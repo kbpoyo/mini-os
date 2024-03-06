@@ -50,6 +50,9 @@
 // 定义任务时间片长度
 #define TASK_TIME_SLICE_MS 10  // ms，最大支持1.3107s
 
+#define TASK_SVC_STACK_SIZE 1024
+#define TASK_USER_STACK_SIZE (2 * 1024 * 1024)
+
 // 定义操作系统版本
 #define OS_VERSION "1.0.0"
 

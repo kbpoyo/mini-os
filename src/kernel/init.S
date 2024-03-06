@@ -72,7 +72,11 @@ _swi_handler:
     //恢复cpu上下文
     pop {r0}
     msr spsr, r0
-    ldmfd sp!, {r0-r12, pc}^
+    ldmfd sp, {r0-r14}^ //恢复用户组寄存器
+    nop
+    add sp, #60
+
+    ldmfd sp!, {pc}^    //加载返回地址
 
 
 
@@ -134,6 +138,11 @@ task_switch_by_sp:
     //切换栈空间
     ldr sp, [r1]    //加载目标任务的svc_sp值
 
+    //切换页目录表
+    ldr r0, [r1, #4]
+    mcr p15, 0, r0, cr2, cr0, 0
+    mov r0, #0
+    mcr p15, 0, r0, c8, c7, 0   //！！使无效整个TLB 
 
 
     //恢复新任务的cpu上下文
