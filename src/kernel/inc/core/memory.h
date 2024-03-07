@@ -83,6 +83,9 @@ int memory_copy_uvm_data(uint32_t to_vaddr, uint32_t to_page_dir,
                          uint32_t from_vaddr, uint32_t size);
 
 char *sys_sbrk(int incr);
+int sys_memory_stat(char *buf, int size);
+
+memory_page_count_used(uint32_t page_dir);
 
 void memory_show_bitmap();
 

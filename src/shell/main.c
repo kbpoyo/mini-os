@@ -22,7 +22,7 @@
 #include "lib_syscall.h"
 
 static char cmd_buf[512];
-static const char *prompt = "sh >>";
+static const char *prompt = ESC_COLOR_SHELL "sh >>" ESC_COLOR_DEFAULT;
 static cli_t cli;
 
 /**
@@ -191,14 +191,14 @@ static int do_less(int argc, const char **argv) {
   if (optind >
       argc - 1) {  // argc - 1
                    // 为message的索引，optind>argc-1表示此次调用未携带message
-    fprintf(stderr, ESC_COLOR_ERROR "no file input\n" ESC_COLOR_DEFAULT);
+    fprintf(stderr, ESC_COLOR_ERROR "no file input.\n" ESC_COLOR_DEFAULT);
     return -1;
   }
 
   // 打开文件
   FILE *file = fopen(argv[optind], "r");
   if (file == NULL) {
-    fprintf(stderr, ESC_COLOR_ERROR "open file failed. %s" ESC_COLOR_DEFAULT,
+    fprintf(stderr, ESC_COLOR_ERROR "open file failed. %s\n" ESC_COLOR_DEFAULT,
             argv[optind]);
     return -1;
   }
@@ -263,7 +263,7 @@ static int do_cp(int argc, const char **argv) {
     goto cp_failed;
   }
 
-  int buf_len = 255;
+  int buf_len = 1024;
   char *buf = (char *)malloc(buf_len);
   int size;
   while ((size = fread(buf, 1, buf_len, from)) > 0) {
@@ -304,47 +304,108 @@ static int do_rm(int argc, const char **argv) {
   return err;
 }
 
+/**
+ * @brief 显示任务分配情况
+ *
+ * @param argc
+ * @param argv
+ * @return int
+ */
+static int do_show_task_stat(int argc, const char **argv) {
+  int buf_size = 128 * 50 + 100;
+  char *buf = malloc(buf_size);
+
+  int task_count = 0;
+  int err = task_use_stat(buf, buf_size, &task_count);
+  if (err == -1) {
+    fprintf(stderr,
+            ESC_COLOR_ERROR "this buf is too small!\n" ESC_COLOR_DEFAULT);
+    free(buf);
+    return -1;
+  }
+
+  printf(ESC_COLOR_SHELL);
+  printf("name\t\tpid\t\tppid\t\tmem\n");
+  printf(buf);
+  printf(ESC_COLOR_DEFAULT);
+
+  free(buf);
+  return 0;
+}
+
+/**
+ * @brief 打印系统内存使用信息
+ *
+ * @param argc
+ * @param argv
+ * @return int
+ */
+static int do_show_mem_stat(int argc, const char **argv) {
+  int buf_size = 1024;
+  char *buf = malloc(buf_size);
+
+  int err = memory_use_stat(buf, buf_size);
+  if (err == -1) {
+    fprintf(stderr,
+            ESC_COLOR_ERROR "this buf is too small!\n" ESC_COLOR_DEFAULT);
+    free(buf);
+    return -1;
+  }
+
+  printf(ESC_COLOR_SHELL);
+  printf(buf);
+  printf(ESC_COLOR_DEFAULT);
+
+  free(buf);
+  return 0;
+}
+
 // 终端命令表
 static const cli_cmd_t cmd_list[] = {
     {
         .name = "help",
-        .usage = "help\t--list supported command",
+        .usage = "help\t\t--list supported command",
         .do_func = do_help,
     },
     {
         .name = "clear",
-        .usage = "clear\t--clear screen",
+        .usage = "clear\t\t--clear screen",
         .do_func = do_clear,
     },
     {
         .name = "echo",
-        .usage = "echo [-n count] msg\t--echo msg [count] times",
+        .usage = "echo [-n count] msg\t\t--echo msg [count] times",
         .do_func = do_echo,
     },
     {
         .name = "ls",
-        .usage = "ls\t--lsit director",
+        .usage = "ls\t\t--list director",
         .do_func = do_ls,
     },
     {
         .name = "less",
-        .usage = "quit from shell",
+        .usage = "less [-l] file\t\t--show file content [by line]",
         .do_func = do_less,
     },
     {
         .name = "cp",
-        .usage = "cp src dest\t--copy file",
+        .usage = "cp src dest\t\t--copy file",
         .do_func = do_cp,
     },
     {
         .name = "rm",
-        .usage = "rm file\tremove file",
+        .usage = "rm file\t\t--remove file",
         .do_func = do_rm,
     },
     {
         .name = "quit",
-        .usage = "quit\t--quit from shell",
+        .usage = "quit\t\t--quit from shell",
         .do_func = do_exit,
+    },
+    {
+        .name = "task_status",
+        .usage = "task_status\t\t--show the status of task",
+        .do_func = do_show_task_stat,
     }};
 
 /**
@@ -410,12 +471,14 @@ static void run_exec_file(const char *path, int argc, const char **argv) {
   // 1.创建子进程
   int pid = fork();
   if (pid < 0) {
-    fprintf(stderr, ESC_COLOR_ERROR "fork failed: %s" ESC_COLOR_DEFAULT, path);
+    fprintf(stderr, ESC_COLOR_ERROR "fork failed: %s\n" ESC_COLOR_DEFAULT,
+            path);
   } else if (pid == 0) {
     // 2.子进程加载外部程序
     int err = execve(path, (char *const *)argv, (char *const *)0);
     if (err < 0) {
-      fprintf(stderr, "exec failed: %s\n", path);
+      fprintf(stderr, ESC_COLOR_ERROR "exec failed: %s\n" ESC_COLOR_DEFAULT,
+              path);
     }
     exit(-1);
   } else {

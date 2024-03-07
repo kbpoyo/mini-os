@@ -29,6 +29,7 @@
         "mutex.h": "c",
         "stat.h": "c",
         "main.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "fatfs.h": "c"
     }
 }

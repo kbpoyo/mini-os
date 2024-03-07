@@ -664,7 +664,17 @@ int nand_write(int addr, char *buf, int size) {
  * @param arg1
  * @return int
  */
-int nand_control(int cmd, int arg0, int arg1) { return -1; }
+int nand_control(int cmd, int arg0, int arg1) {
+  switch (cmd) {
+    case NF_CMD_WRITE_BACK:
+      nand_write_buff_to_block();
+      break;
+
+    default:
+      break;
+  }
+  return 0;
+}
 
 /**
  * @brief 关闭磁盘

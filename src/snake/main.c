@@ -65,6 +65,7 @@ void clear_map(void) { printf("%s", ESC_CLEAR_SCREEN); }
 void create_map(void) {
   clear_map();
 
+  printf(ESC_COLOR_WALL);
   // 上下行
   for (int col = 1; col < col_max - 1; col++) {
     show_char(0, col, '=');
@@ -80,6 +81,7 @@ void create_map(void) {
   for (int row = 1; row < row_max - 1; row++) {
     show_char(row, col_max - 1, '|');
   }
+  printf(ESC_COLOR_DEFAULT);
 }
 
 /**
@@ -91,7 +93,9 @@ static void add_head(int row, int col) {
   part->col = col;
   part->next = snake.head;
   snake.head = part;
+  printf(ESC_COLOR_SNAKE);
   show_char(row, col, '*');
+  printf(ESC_COLOR_DEFAULT);
 }
 
 /**
@@ -124,7 +128,9 @@ static void create_snake(void) {
   snake.head->next = (body_part_t *)0;
   snake.status = SNAKE_BIT_NONE;
   snake.dir = PLAYER1_KEY_LEFT;
+  printf(ESC_COLOR_SNAKE);
   show_char(snake.head->row, snake.head->col, '*');
+  printf(ESC_COLOR_DEFAULT);
 }
 
 /**
@@ -153,7 +159,9 @@ static void create_food(void) {
     while (part) {
       if ((food->row != snake.head->row) || (food->col != snake.head->col)) {
         // 将食物显示出来
+        printf(ESC_COLOR_FOOD);
         show_char(food->row, food->col, '*');
+        printf(ESC_COLOR_DEFAULT);
         return;
       }
       part = part->next;
@@ -295,5 +303,7 @@ int main(int argc, char **argv) {
   // 这里是有危险的，如果进程异常退出，将导致回显失败
   ioctl(0, TTY_CMD_ECHO, 1, 0);
   clear_map();
+  // 光标移回0行0列
+  printf("\x1b[%d;%dH", 0, 0);
   return 0;
 }

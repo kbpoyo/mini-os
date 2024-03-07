@@ -50,7 +50,7 @@ void write_fs_nand() {
     int ret = nand_write(i, buff, 1);
     buff += 512;
     if (i % 256 == 0) {
-      log_printf("write block: %d\n", i + 1);
+      log_printf("write block: %d\n", i / 256);
     }
   }
 
@@ -103,4 +103,7 @@ int kernel_init() {
   cpu_irq_start();
 
   move_to_first_task();
+
+  while (1)
+    ;
 }

@@ -45,6 +45,10 @@ void uart_init(int uart_inedx) {
                            (irq_handler_t)irq_handler_for_uartRX0);
       irq_enable(INT_RXD0_PRIM, INT_RXD0_SUB);
 
+      irq_handler_register(INT_UART0_ERR_PRIM,
+                           (irq_handler_t)irq_handler_for_uartRX0);
+      irq_enable(INT_UART0_ERR_PRIM, INT_UART0_ERR_SUB);
+
       // 初始化串口设备表
       uart_table[0].in_addr = (volatile unsigned *)URXH0;
       uart_table[0].out_addr = (volatile unsigned *)UTXH0;
@@ -225,14 +229,21 @@ int uart_control(int cmd, int arg0, int arg1) {}
 
 void irq_handler_for_uartRX0() {
   ASSERT((rINTOFFSET == INT_UART0));
-  // 清除中断位
-  irq_clear(INT_RXD0_PRIM, INT_RXD0_SUB);
 
-  uart_t *uart = uart_table + curr_uart_index;
+  if ((rSUBSRCPND & (1 << INT_RXD0_SUB)) &&
+      !(rINTSUBMSK & (1 << INT_RXD0_SUB))) {
+    // 清除中断位
+    irq_clear(INT_RXD0_PRIM, INT_RXD0_SUB);
 
-  // 判断状态寄存器接收缓冲区位，是否有数据可读
-  if (*(uart->state_addr) & STATE_REC_BUFF_ISREADY) {
-    tty_in(*(uart->in_addr));
+    uart_t *uart = uart_table + curr_uart_index;
+
+    // 判断状态寄存器接收缓冲区位，是否有数据可读
+    if (*(uart->state_addr) & STATE_REC_BUFF_ISREADY) {
+      tty_in(*(uart->in_addr));
+    }
+  } else if ((rSUBSRCPND & (1 << INT_UART0_ERR_SUB)) &&
+             !(rINTSUBMSK & (1 << INT_UART0_ERR_SUB))) {
+    irq_clear(INT_UART0_ERR_PRIM, INT_UART0_ERR_SUB);
   }
 }
 

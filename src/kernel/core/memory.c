@@ -745,7 +745,7 @@ char *sys_sbrk(int incr) {
   int pre_incr = incr;
 
   if (incr == 0) {
-    log_printf("sbrk(0): end=0x%x\n", pre_heap_end);
+    // log_printf("sbrk(0): end=0x%x\n", pre_heap_end);
     return pre_heap_end;
   }
 
@@ -776,8 +776,79 @@ char *sys_sbrk(int incr) {
     }
   }
 
-  log_printf("sbrk(%d): end=0x%x\n", pre_incr, end);
+  // log_printf("sbrk(%d): end=0x%x\n", pre_incr, end);
   task->heap_end = end;
 
   return (char *)pre_heap_end;
+}
+
+/**
+ * @brief 查看已使用内存量
+ *
+ * @return int
+ */
+static int memory_used() {
+  int cnt = 0;
+  for (int i = 0; i < paddr_alloc.bitmap.bit_count; ++i) {
+    if (bitmap_is_set(&paddr_alloc.bitmap, i)) {
+      cnt++;
+    }
+  }
+
+  return cnt * paddr_alloc.page_size;
+}
+
+/**
+ * @brief 获取内存使用情况
+ *
+ * @return int
+ */
+int sys_memory_stat(char *buf, int size) {
+  if (size <= (sizeof(int) * 6 * 8 + 60)) {
+    return -1;
+  }
+  int mem_used = memory_used();
+  int mem_free = paddr_alloc.size - mem_used;
+  kernel_sprintf(buf,
+                 "mem_start:\t0x%x.\nmem_size:\t%dM.\nmem_used:\t%dMB-%dKB."
+                 "\nmem_free:%dMB-%dKB.\n",
+                 paddr_alloc.start, paddr_alloc.size,
+                 (mem_used / (1024 * 1024)), (mem_used % (1024 * 1024)) / 1024,
+                 (mem_free / (1024 * 1024)), (mem_free % (1024 * 1024)) / 1024);
+
+  return 0;
+}
+
+/**
+ * @brief 查看页目录表中已映射的页数
+ *
+ * @param page_dir
+ * @return int
+ */
+int memory_page_count_used(uint32_t page_dir) {
+  int cnt = 0;
+  // 1.获取用户程序虚拟地址的起始pde索引，即0x8000 0000 的pde索引值
+  uint32_t user_pde_start = pde_index(MEM_TASK_BASE);
+  pde_t *pde = (pde_t *)page_dir;
+
+  // 2.遍历源页目录表中的每一个页目录项，拷贝给目标目录
+  for (int i = user_pde_start; i < PDE_CNT; ++i, ++pde) {
+    if (!pde->domain.flag) {  // 当前页目录项不存在
+      continue;
+    }
+
+    // 3.获取页目录项指向的页表的起始地址
+    pte_t *pte = (pte_t *)pde_to_pt_addr(pde);
+
+    // 4.遍历页表的页表项，进行读共享写复制的映射操作
+    for (int j = 0; j < PTE_CNT; ++j, ++pte) {
+      if (!pte->domain.flag) {  // 当前页表项不存在
+        continue;
+      }
+
+      cnt++;
+    }
+  }
+
+  return cnt;
 }

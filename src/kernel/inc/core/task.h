@@ -144,5 +144,6 @@ int sys_fork(void);
 int sys_execve(char *name, char *const *argv, char *const *env);
 void sys_exit(int status);
 int sys_wait(int *status);
+int sys_task_stat(char *buf, int size, int *task_count);
 
 #endif

@@ -81,4 +81,8 @@ DIR *opendir(const char *path);
 struct dirent *readdir(DIR *dir);
 int closedir(DIR *dir);
 
+// 查看系统情况
+int memory_use_stat(char *buf, int size);
+int task_use_stat(char *buf, int size, int *task_count);
+
 #endif

@@ -2,7 +2,7 @@
 #define NANDFLASH_H
 #include "common/register_addr.h"
 #include "common/types.h"
-
+#include "core/disk.h"
 /**
  * @brief
  *
@@ -175,11 +175,14 @@ A28 = 0                                        0x01 & (page >> 16)
 // 由总扇区号计算块内扇区号
 #define NF_BLOCK_IN_SECTOR_NUMBER(sector) (sector & 0xff)
 
+// 定义控制指令
+#define NF_CMD_WRITE_BACK DISK_CMD_WRITE_BACK
+
 int nand_open();
 
 int nand_read(int addr, char* buf, int size);
 int nand_write(int addr, char* buf, int size);
 
 void nand_close();
-
+int nand_control(int cmd, int arg0, int arg1);
 #endif

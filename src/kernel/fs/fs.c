@@ -128,7 +128,7 @@ int path_begin_with(const char *path, const char *str) {
  */
 static void fs_protect(fs_t *fs) {
   if (fs->mutex) {
-    // mutex_lock(fs->mutex);
+    mutex_lock(fs->mutex);
   }
 }
 
@@ -139,7 +139,7 @@ static void fs_protect(fs_t *fs) {
  */
 static void fs_unprotect(fs_t *fs) {
   if (fs->mutex) {
-    // mutex_unlock(fs->mutex);
+    mutex_unlock(fs->mutex);
   }
 }
 
@@ -201,7 +201,7 @@ int sys_open(const char *name, int flags, ...) {
   fs_unprotect(fs);
 
   if (err < 0) {
-    log_printf("open failed!");
+    // log_printf("open failed!");
     goto sys_open_failed;
   }
 

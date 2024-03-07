@@ -13,6 +13,7 @@
 #define DISK_H
 
 #include "common/types.h"
+#include "core/dev.h"
 #include "ipc/mutex.h"
 #include "ipc/sem.h"
 
@@ -23,6 +24,9 @@
 #define DISK_PER_CHANNEL 1             // 定义外部储存器件个数
 // primary信道上的磁盘分区表数量
 #define MBR_PRIMARY_PART_NR 4
+
+// 定义磁盘控制指令
+#define DISK_CMD_WRITE_BACK DEV_CMD_DISK_WRITE_BACK
 
 #pragma pack(1)
 // 分区表结构

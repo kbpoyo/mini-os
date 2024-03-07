@@ -768,34 +768,34 @@ static uint32_t load_elf_file(task_t *task, const char *name,
   // 2.打开文件
   int file = sys_open(name, 0);
   if (file < 0) {
-    log_printf("open failed %s\n", name);
+    log_printf("open failed %s!\n", name);
     goto load_failed;
   }
 
   // 3.读取elf文件的elf头部分
   int cnt = sys_read(file, (char *)&elf_hdr, sizeof(Elf32_Ehdr));
   if (cnt < sizeof(Elf32_Ehdr)) {
-    log_printf("elf hdr too small. size=%d\n", cnt);
+    log_printf("elf hdr too small. size=%d!\n", cnt);
     goto load_failed;
   }
 
   // 4.判断是否为ELF文件
   if (elf_hdr.e_ident[0] != 0x7F || elf_hdr.e_ident[1] != 'E' ||
       elf_hdr.e_ident[2] != 'L' || elf_hdr.e_ident[3] != 'F') {
-    log_printf("check elf ident failed.\n");
+    log_printf("check elf ident failed!\n");
     goto load_failed;
   }
 
   // 5.必须是可执行文件和针对处理器的类型，且有入口
   if ((elf_hdr.e_type != ET_EXEC) /*|| (elf_hdr.e_machine != EM_ARM)*/ ||
       (elf_hdr.e_entry == 0)) {
-    log_printf("check elf type or entry failed.\n");
+    log_printf("check elf type or entry failed!\n");
     goto load_failed;
   }
 
   // 6.必须有程序头部
   if ((elf_hdr.e_phentsize == 0) || (elf_hdr.e_phoff == 0)) {
-    log_printf("none programe header\n");
+    log_printf("none programe header!\n");
     goto load_failed;
   }
 
@@ -803,13 +803,13 @@ static uint32_t load_elf_file(task_t *task, const char *name,
   uint32_t e_phoff = elf_hdr.e_phoff;  // 获取程序段表的偏移地址
   for (int i = 0; i < elf_hdr.e_phnum; ++i, e_phoff += elf_hdr.e_phentsize) {
     if (sys_lseek(file, e_phoff, 0) < 0) {
-      log_printf("read file failed\n");
+      log_printf("read file failed!\n");
       goto load_failed;
     }
 
     cnt = sys_read(file, (char *)&elf_phdr, sizeof(Elf32_Phdr));
     if (cnt < sizeof(Elf32_Phdr)) {
-      log_printf("read file failed\n");
+      log_printf("read file failed!\n");
       goto load_failed;
     }
 
@@ -821,7 +821,7 @@ static uint32_t load_elf_file(task_t *task, const char *name,
     // 加载该程序段
     int err = load_phdr(file, &elf_phdr, page_dir);
     if (err < 0) {
-      log_printf("load program failed\n");
+      log_printf("load program failed!\n");
       goto load_failed;
     }
 
@@ -945,7 +945,7 @@ int sys_execve(char *name, char *const *argv, char *const *env) {
   task->task_sw.page_dir = new_page_dir;
   mmu_set_page_dir(new_page_dir);
   memory_destroy_uvm(old_page_dir);
-  return 0;
+  return argc;  // r0装入返回值并作为新程序的第一个参数
 
 exec_failed:
   // 执行失败，释放资源并恢复到原进程状态
@@ -1076,5 +1076,38 @@ int sys_wait(int *status) {
     // TODO:解锁
     task_leave_protection(state);
   }
+  return 0;
+}
+
+/**
+ * @brief 查看任务分配情况
+ *
+ * @param buf
+ * @return int
+ */
+int sys_task_stat(char *buf, int size, int *task_count) {
+  int task_cnt = 0;
+
+  for (int i = 0; i < TASK_COUNT; ++i) {
+    if (task_table[i].pid == 0) {
+      continue;
+    }
+
+    size -= (TASK_NAME_SIZE + sizeof(int) * 3 * 8 + 10);
+    if (size <= 0) {
+      *task_count = task_cnt;
+      return -1;
+    }
+
+    int page_count = memory_page_count_used(task_current()->task_sw.page_dir);
+    kernel_sprintf(buf, "%s\t\t%d\t\t%d\t\t%dKB.\n", task_table[i].name,
+                   task_table[i].pid, task_table[i].parent,
+                   page_count * MEM_PAGE_SIZE / 1024);
+
+    task_cnt++;
+  }
+
+  *task_count = task_cnt;
+
   return 0;
 }

@@ -17,16 +17,6 @@ _start:
 
 
 _exc_handler_reset:
-    //
-    mrc p15, 0, r0, cr1, cr0, 0
-    bic r0, #0x1
-    mcr p15, 0, r0, cr1, cr0, 0
-    //调试用，确保当前为特权模式
-    mrs r0, cpsr
-    bic r0, #0x1f
-    orr r0, #CPU_MODE_SVC
-    msr cpsr, r0
-
     //1.关闭看门狗
     ldr r0, =_rWTCON
     ldr r1, =0x0

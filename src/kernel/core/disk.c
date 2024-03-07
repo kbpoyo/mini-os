@@ -13,7 +13,6 @@
 
 #include "common/boot_info.h"
 #include "common/cpu_instr.h"
-#include "core/dev.h"
 #include "core/irq.h"
 #include "dev/nandflash.h"
 #include "tools/klib.h"
@@ -286,7 +285,10 @@ int disk_write(device_t *dev, int addr, char *buf, int size) {
  * @param arg1
  * @return int
  */
-int disk_control(device_t *dev, int cmd, int arg0, int arg1) { return -1; }
+int disk_control(device_t *dev, int cmd, int arg0, int arg1) {
+  nand_control(cmd, arg0, arg1);
+  return 0;
+}
 
 /**
  * @brief 关闭磁盘

@@ -48,4 +48,7 @@ typedef struct _dev_desc_t {
 
 } dev_desc_t;
 
+// 定义dev控制指令
+#define DEV_CMD_DISK_WRITE_BACK 0x1
+
 #endif

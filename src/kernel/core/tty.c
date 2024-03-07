@@ -172,13 +172,16 @@ int tty_write(device_t *dev, int addr, char *buf, int size) {
       }
     }
 
-    if (c == '\r' && (tty->oflags & TTY_OCRLF)) {
-      sem_wait(&tty->out_sem);
-      int err = tty_fifo_put(&tty->out_fifo, c);
-      c = '\n';
-      if (err < 0) {
-        break;
+    if (c == 0x7f) {  // 进行退格处理
+      char *str = "\x1b[1D \x1b[1";
+      for (int i = 0; i < 8; ++i) {
+        sem_wait(&tty->out_sem);
+        int err = tty_fifo_put(&tty->out_fifo, str[i]);
+        if (err < 0) {
+          break;
+        }
       }
+      c = 'D';
     }
 
     // 先获取到访问缓冲区一个字节资源的资格
@@ -249,6 +252,7 @@ int tty_read(device_t *dev, int addr, char *buf, int size) {
           // 开启了换行转换
           *(pbuf++) = '\r';
           len++;
+          ch = '\n';
         }
         *(pbuf++) = '\n';
         len++;

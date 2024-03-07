@@ -47,6 +47,9 @@
 
 #define SYS_printmsg 10  // 临时使用的打印函数
 
+#define SYS_memory_stat 64
+#define SYS_task_stat 65
+
 #pragma pack(1)
 /**
  * @brief 系统调用的参数结构体

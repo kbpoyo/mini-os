@@ -371,3 +371,41 @@ int _unlink(const char *path) {
 
   return err;
 }
+
+/**
+ * @brief 查看系统内存使用情况
+ *
+ * @param buf
+ * @param size
+ * @return int
+ */
+int memory_use_stat(char *buf, int size) {
+  syscall_args_t args;
+  args.id = SYS_memory_stat;
+  args.arg0 = (uint32_t)buf;
+  args.arg1 = size;
+
+  int err = sys_call(&args);
+
+  return err;
+}
+
+/**
+ * @brief 查看系统任务分配情况
+ *
+ * @param buf
+ * @param size
+ * @param task_count
+ * @return int
+ */
+int task_use_stat(char *buf, int size, int *task_count) {
+  syscall_args_t args;
+  args.id = SYS_task_stat;
+  args.arg0 = (uint32_t)buf;
+  args.arg1 = size;
+  args.arg2 = (uint32_t)task_count;
+
+  int err = sys_call(&args);
+
+  return err;
+}

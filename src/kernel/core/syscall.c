@@ -47,6 +47,8 @@ static const sys_handler_t sys_table[] = {
     [SYS_closedir] = (sys_handler_t)sys_closedir,
     [SYS_ioctl] = (sys_handler_t)sys_ioctl,
     [SYS_unlink] = (sys_handler_t)sys_unlink,
+    [SYS_task_stat] = (sys_handler_t)sys_task_stat,
+    [SYS_memory_stat] = (sys_handler_t)sys_memory_stat
 
 };
 

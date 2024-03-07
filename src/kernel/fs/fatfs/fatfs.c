@@ -20,6 +20,59 @@
 #include "tools/klib.h"
 #include "tools/log.h"
 
+// fat表缓存
+fat_buff_t fat_table_1 = {.table = 0};
+fat_buff_t fat_table_2 = {.table = 0};
+
+/**
+ * @brief 读取fat表区缓存
+ *
+ * @param fat
+ * @return int
+ */
+static int fat_table_buffer_read(fat_t *fat) {
+  int err = dev_read(fat->fs->dev_id, fat->tbl_start_sector, fat_table_1.table,
+                     fat->tbl_sectors);
+  if (err == -1) {
+    log_error("fat buffer read err!\n");
+    return -1;
+  }
+
+  err = dev_read(fat->fs->dev_id, fat->tbl_start_sector + fat->tbl_sectors,
+                 fat_table_2.table, fat->tbl_sectors);
+
+  if (err == -1) {
+    log_error("fat buffer read err!\n");
+    return -1;
+  }
+
+  return 0;
+}
+
+/**
+ * @brief fat表区缓存写回磁盘
+ *
+ * @param fat
+ * @return int
+ */
+static int fat_table_buffer_write_back(fat_t *fat) {
+  int err = dev_write(fat->fs->dev_id, fat->tbl_start_sector, fat_table_1.table,
+                      fat->tbl_sectors);
+  if (err == -1) {
+    log_error("fat buffer write back err!\n");
+    return -1;
+  }
+
+  err = dev_write(fat->fs->dev_id, fat->tbl_start_sector + fat->tbl_sectors,
+                  fat_table_2.table, fat->tbl_sectors);
+  if (err == -1) {
+    log_error("fat buffer write back err!\n");
+    return -1;
+  }
+
+  return 0;
+}
+
 /**
  * @brief 将普通文件名src转换成系统文件名dest
  *         系统文件名是8个字节文件名 + 3个字节拓展名
@@ -125,6 +178,40 @@ static int fat_write_sector(fat_t *fat, int sector) {
   return (cnt == 1) ? 0 : -1;
 }
 
+// /**
+//  * @brief 根据fat表中记录的簇链信息，获取当前簇号
+//  *          cblk的下一个簇的簇号
+//  *
+//  * @param fat
+//  * @param cblk
+//  * @return int
+//  */
+// static int cluster_get_next(fat_t *fat, cluster_t cblk) {
+//   // 簇号无效
+//   if (!cluster_is_valid(cblk)) {
+//     return FAT_CLUSTER_INVALID;
+//   }
+
+//   // 计算当前簇cblk在对应分区中的扇区号
+//   // fat表保存了簇链关系，
+//   int offset = cblk * sizeof(cluster_t);
+//   int sector = offset / fat->bytes_per_sector;
+//   // 计算该簇在扇区中的偏移量
+//   int off_in_sector = offset % fat->bytes_per_sector;
+
+//   if (sector >= fat->tbl_sectors) {
+//     log_printf("cluster too big: %d\n", cblk);
+//     return FAT_CLUSTER_INVALID;
+//   }
+
+//   int err = fat_read_sector(fat, fat->tbl_start_sector + sector);
+//   if (err < 0) {
+//     return FAT_CLUSTER_INVALID;
+//   }
+
+//   return *(cluster_t *)(fat->fat_buffer + off_in_sector);
+// }
+
 /**
  * @brief 根据fat表中记录的簇链信息，获取当前簇号
  *          cblk的下一个簇的簇号
@@ -141,26 +228,69 @@ static int cluster_get_next(fat_t *fat, cluster_t cblk) {
 
   // 计算当前簇cblk在对应分区中的扇区号
   // fat表保存了簇链关系，
-  int offset = cblk * sizeof(cluster_t);
-  int sector = offset / fat->bytes_per_sector;
-  // 计算该簇在扇区中的偏移量
-  int off_in_sector = offset % fat->bytes_per_sector;
+
+  int sector = cblk * sizeof(cluster_t) / fat->bytes_per_sector;
 
   if (sector >= fat->tbl_sectors) {
     log_printf("cluster too big: %d\n", cblk);
     return FAT_CLUSTER_INVALID;
   }
 
-  int err = fat_read_sector(fat, fat->tbl_start_sector + sector);
-  if (err < 0) {
-    return FAT_CLUSTER_INVALID;
-  }
-
-  return *(cluster_t *)(fat->fat_buffer + off_in_sector);
+  return fat_table_1.table[cblk] == fat_table_2.table[cblk]
+             ? fat_table_1.table[cblk]
+             : FAT_CLUSTER_INVALID;
 }
 
+// /**
+//  * @brief 设置fat表中簇号start对应的下一个簇号为next
+//  *
+//  * @param fat
+//  * @param start
+//  * @param next
+//  */
+// static int cluster_set_next(fat_t *fat, cluster_t start, cluster_t next) {
+//   // 簇号无效
+//   if (!cluster_is_valid(start)) {
+//     return FAT_CLUSTER_INVALID;
+//   }
+
+//   // 计算当前簇cblk在对应分区中的扇区号
+//   // fat表保存了簇链关系，
+//   int offset = start * sizeof(cluster_t);
+//   int sector = offset / fat->bytes_per_sector;
+//   // 计算该簇在扇区中的偏移量
+//   int off_in_sector = offset % fat->bytes_per_sector;
+
+//   if (sector >= fat->tbl_sectors) {
+//     log_printf("cluster too big: %d\n", start);
+//     return FAT_CLUSTER_INVALID;
+//   }
+
+//   // 将该簇号所在的扇区读到缓冲区fat_buffer中
+//   int err = fat_read_sector(fat, fat->tbl_start_sector + sector);
+//   if (err < 0) {
+//     return FAT_CLUSTER_INVALID;
+//   }
+
+//   // 将缓冲区中该表项的值设为next
+//   *(cluster_t *)(fat->fat_buffer + off_in_sector) = next;
+//   // 再将缓冲区覆盖到磁盘对应区域
+//   for (int i = 0; i < fat->tbl_cnt; ++i) {
+//     err = fat_write_sector(fat, fat->tbl_start_sector + sector);
+//     if (err < 0) {
+//       log_printf("write cluster failed.\n");
+//       return -1;
+//     }
+
+//     // 偏移一个fat表的大小，将相邻的第二个fat表的对应位置也清空
+//     sector += fat->tbl_sectors;
+//   }
+
+//   return 0;
+// }
+
 /**
- * @brief 设置fat表种簇号start对应的下一个簇号为next
+ * @brief 设置fat表中簇号start对应的下一个簇号为next
  *
  * @param fat
  * @param start
@@ -174,35 +304,16 @@ static int cluster_set_next(fat_t *fat, cluster_t start, cluster_t next) {
 
   // 计算当前簇cblk在对应分区中的扇区号
   // fat表保存了簇链关系，
-  int offset = start * sizeof(cluster_t);
-  int sector = offset / fat->bytes_per_sector;
-  // 计算该簇在扇区中的偏移量
-  int off_in_sector = offset % fat->bytes_per_sector;
+  int sector = start * sizeof(cluster_t) / fat->bytes_per_sector;
 
   if (sector >= fat->tbl_sectors) {
     log_printf("cluster too big: %d\n", start);
     return FAT_CLUSTER_INVALID;
   }
 
-  // 将该簇号所在的扇区读到缓冲区fat_buffer中
-  int err = fat_read_sector(fat, fat->tbl_start_sector + sector);
-  if (err < 0) {
-    return FAT_CLUSTER_INVALID;
-  }
-
-  // 将缓冲区中该表项的值设未next
-  *(cluster_t *)(fat->fat_buffer + off_in_sector) = next;
-  // 再将缓冲区覆盖到磁盘对应区域
-  for (int i = 0; i < fat->tbl_cnt; ++i) {
-    err = fat_write_sector(fat, fat->tbl_start_sector + sector);
-    if (err < 0) {
-      log_printf("write cluster failed.\n");
-      return -1;
-    }
-
-    // 偏移一个fat表的大小，将相邻的第二个fat表的对应位置也清空
-    sector += fat->tbl_sectors;
-  }
+  // 将缓冲区中该表项的值设为next
+  fat_table_1.table[start] = next;
+  fat_table_2.table[start] = next;
 
   return 0;
 }
@@ -568,11 +679,51 @@ int fatfs_mount(struct _fs_t *fs, int major, int minor) {
   fs->data = &fs->fat_data;
   fs->dev_id = dev_id;
 
+  // 释放dbr区域,并为fat_buffer开辟一簇大小的空间做缓存
+  memory_free_page((uint32_t)dbr, 1);
+  fat->fat_buffer = memory_alloc_page(
+      up2(fat->bytes_per_sector * fat->sec_per_cluster, MEM_PAGE_SIZE) /
+      MEM_PAGE_SIZE);
+
+  if (fat->fat_buffer == 0) {
+    log_error("fat_buffer err!\n");
+    goto mount_failed;
+  }
+
+  uint32_t fat_page_count =
+      up2(fat->tbl_sectors * fat->bytes_per_sector, MEM_PAGE_SIZE) /
+      MEM_PAGE_SIZE;
+
+  fat_table_1.table = memory_alloc_page(fat_page_count);
+  fat_table_2.table = memory_alloc_page(fat_page_count);
+
+  if (fat_table_1.table == 0 || fat_table_2.table == 0) {
+    log_error("fat table buffer err!\n");
+    goto mount_failed;
+  }
+
+  int err = fat_table_buffer_read(fat);
+  if (err == -1) {
+    goto mount_failed;
+  }
+
   return 0;
 
 mount_failed:
   if (dbr) {
     memory_free_page((uint32_t)dbr, 1);
+  }
+  if (fat_table_1.table) {
+    memory_free_page(fat_table_1.table, fat_page_count);
+  }
+  if (fat_table_2.table) {
+    memory_free_page(fat_table_2.table, fat_page_count);
+  }
+  if (fat->fat_buffer) {
+    memory_free_page(
+        fat->fat_buffer,
+        up2(fat->bytes_per_sector * fat->sec_per_cluster, MEM_PAGE_SIZE) /
+            MEM_PAGE_SIZE);
   }
 
   dev_close(dev_id);
@@ -589,7 +740,18 @@ void fatfs_unmount(struct _fs_t *fs) {
   fat_t *fat = (fat_t *)fs->data;
   dev_close(fs->dev_id);
 
-  memory_free_page((uint32_t)fat->fat_buffer, 1);
+  memory_free_page(
+      (uint32_t)fat->fat_buffer,
+      up2(fat->bytes_per_sector * fat->sec_per_cluster, MEM_PAGE_SIZE) /
+          MEM_PAGE_SIZE);
+  memory_free_page(
+      (uint32_t)fat_table_1.table,
+      up2(fat->bytes_per_sector * fat->tbl_sectors, MEM_PAGE_SIZE) /
+          MEM_PAGE_SIZE);
+  memory_free_page(
+      (uint32_t)fat_table_2.table,
+      up2(fat->bytes_per_sector * fat->tbl_sectors, MEM_PAGE_SIZE) /
+          MEM_PAGE_SIZE);
 }
 
 /**
@@ -650,7 +812,7 @@ int fatfs_open(struct _fs_t *fs, const char *path, file_t *file) {
     // 将目录项信息写入到根目录区
     int err = write_dir_entry(fat, &item, p_index);
     if (err < 0) {
-      log_printf("create file failed\n");
+      log_printf("create file failed!\n");
       return -1;
     }
 
@@ -837,8 +999,10 @@ void fatfs_close(file_t *file) {
   item->DIR_FstClusLo = (uint16_t)(file->sblk & 0xffff);
   write_dir_entry(fat, item, file->p_index);
 
+  // 将fat表内容写回到磁盘
+  fat_table_buffer_write_back(fat);
   // 将写操作固化到磁盘
-  dev_close(fat->fs->dev_id);
+  dev_control(fat->fs->dev_id, DEV_CMD_DISK_WRITE_BACK, 0, 0);
 }
 
 /**
