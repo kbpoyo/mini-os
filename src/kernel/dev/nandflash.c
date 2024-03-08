@@ -26,8 +26,6 @@ static nand_block_buff_t nand_block_buff
 void nand_flash_init() {
   log_printf("nand_flash_init...\n");
 
-  log_printf("NFCONF = 0x%x\n", rNFCONF);
-
   // 配置gpio引脚对应nandflash引脚
   rGPACON |= (0x3f << 17);  // 配置芯片引脚
   // 初始化配置寄存器

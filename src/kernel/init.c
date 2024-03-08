@@ -94,9 +94,9 @@ int kernel_init() {
 
   task_manager_init();
 
-  task_first_init();
-
   fs_init();
+
+  task_first_init();
 
   timer_init();
 

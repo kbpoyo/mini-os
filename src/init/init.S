@@ -183,6 +183,9 @@ _exc_handler_irq:
     ldr r0, =EXCEPTION_IRQ
     ldr pc, =KERNEL_ADDR
 
+
+
+
 //对于stm和ldm指令，当pc不在传输列表时,且使用^将s位置位
 //表示传输的是用户模式寄存器，且不能使用基地址回写
 //当pc在传输列表时，对应ldm指令可以使用基地址回写，通常用来
@@ -193,6 +196,14 @@ _exc_handler_data_abort:
     nop
     sub sp, #60
 
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_ABT)   //回到abt模式转移r14和spsr
+    sub r0, r14, #8
+    mrs r1, spsr
+
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)   //进入svc模式使用内核栈
+    push {r0}
+    msr spsr, r1
+
     ldr r0, =EXCEPTION_DATA_ABORT
     ldr pc, =KERNEL_ADDR
 
@@ -201,6 +212,14 @@ _exc_handler_prefetch_abort:
     stmfd sp, {r0-r14}^ 
     nop
     sub sp, #60
+
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_ABT)   //回到abt模式转移r14和spsr
+    sub r0, r14, #4
+    mrs r1, spsr
+
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)   //进入svc模式使用内核栈
+    push {r0}
+    msr spsr, r1
 
     ldr r0, =EXCEPTION_PREFETCH_ABORT
     ldr pc, =KERNEL_ADDR
@@ -211,6 +230,14 @@ _exc_handler_undef:
     stmfd sp, {r0-r14}^ 
     nop
     sub sp, #60
+
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_UND)   //回到abt模式转移r14和spsr
+    mov r0, r14
+    mrs r1, spsr
+
+    msr cpsr_c, (CPU_MASK_IRQ | CPU_MODE_SVC)   //进入svc模式使用内核栈
+    push {r0}
+    msr spsr, r1
 
     ldr r0, =EXCEPTION_UNDEF
     ldr pc, =KERNEL_ADDR

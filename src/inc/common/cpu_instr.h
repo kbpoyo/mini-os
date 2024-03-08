@@ -166,7 +166,26 @@ __attribute__((always_inline)) static uint32_t cpu_cr6_read() {
  *
  */
 __attribute__((always_inline)) static void disable_tlb() {
-  __asm__ __volatile__("mcr p15, 0, r0, c8, c7, 0\n");
+  __asm__ __volatile__(
+      "mov r0, #0\n"
+      "mcr p15, 0, r0, c8, c7, 0\n"
+      :
+      :
+      : "r0");
+}
+
+/**
+ * @brief 清空数据cache并使无效指令和数据cache
+ *
+ */
+__attribute__((always_inline)) static void disable_cache() {
+  __asm__ __volatile__(
+      "mov r0, #0\n"
+      "mcr p15, 0, r0, c7, c5, 0\n"
+      "mcr p15, 0, r0, c7, c14, 0\n"
+      :
+      :
+      : "r0");
 }
 
 #endif

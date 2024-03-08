@@ -205,14 +205,14 @@ int task_init(task_t *task, const char *name, uint32_t entry, uint32_t sp,
   task->slice_max = task->slice_curr = TASK_TIME_SLICE_DEFAULT;
   task->sleep = 0;
   task->pid = (uint32_t)task;
-  // task->parent = (task_t *)0;
+  task->parent = (task_t *)0;
   task->heap_start = task->heap_end = 0;
   // 分配16页给任务当作页目录表
   task->task_sw.page_dir = memory_creat_uvm();
-  // task->status = 0;
+  task->status = 0;
 
   // 5.初始化文件表
-  // kernel_memset(&task->file_table, 0, sizeof(task->file_table));
+  kernel_memset(&task->file_table, 0, sizeof(task->file_table));
 
   // 6.将任务加入任务队列
   list_insert_last(&task_manager.task_list, &task->task_node);
@@ -339,6 +339,8 @@ void task_first_init(void) {
 
   // 9.进程的各个段还只是在虚拟地址中，所以要为各个段分配物理地址页空间，并进行映射
   memory_alloc_page_for(task_start_addr, alloc_size, PTE_FLAG | PTE_AP_USR);
+
+  mmu_set_page_dir(task_manager.first_task.task_sw.page_dir);
 
   // 10.将任务进程各个段从内核四个段之后的紧邻位置，拷贝到已分配好的且与虚拟地址对应的物理地址空间，实现代码隔离
   kernel_memcpy(first_task_entry, s_first_task, alloc_size);
@@ -1087,22 +1089,30 @@ int sys_wait(int *status) {
  */
 int sys_task_stat(char *buf, int size, int *task_count) {
   int task_cnt = 0;
+  char task_buf[256];
+  kernel_memset(buf, 0, size);
 
   for (int i = 0; i < TASK_COUNT; ++i) {
     if (task_table[i].pid == 0) {
       continue;
     }
 
-    size -= (TASK_NAME_SIZE + sizeof(int) * 3 * 8 + 10);
+    kernel_memset(task_buf, 0, 256);
+    int page_count = memory_page_count_used(task_table[i].task_sw.page_dir);
+    kernel_sprintf(task_buf, "%s\t%d\t%d\t%dMB-%dKB.", task_table[i].name,
+                   task_table[i].pid, task_table[i].parent,
+                   page_count * MEM_PAGE_SIZE / (1024 * 1024),
+                   ((page_count * MEM_PAGE_SIZE) % (1024 * 1024)) / 1024);
+
+    int buf_len = kernel_strlen(task_buf);
+    size -= buf_len;
     if (size <= 0) {
       *task_count = task_cnt;
       return -1;
     }
 
-    int page_count = memory_page_count_used(task_current()->task_sw.page_dir);
-    kernel_sprintf(buf, "%s\t\t%d\t\t%d\t\t%dKB.\n", task_table[i].name,
-                   task_table[i].pid, task_table[i].parent,
-                   page_count * MEM_PAGE_SIZE / 1024);
+    kernel_strncpy(buf, task_buf, buf_len + 1);
+    buf += buf_len + 1;
 
     task_cnt++;
   }

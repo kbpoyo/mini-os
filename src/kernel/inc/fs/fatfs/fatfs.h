@@ -19,9 +19,9 @@
 // 标志该簇对应的号码无效
 #define FAT_CLUSTER_INVALID 0xfff8
 // 标志该root_entry是空闲的
-#define DIRITEM_NAEM_FREE 0xE5
-// 标志该root_entry末尾项
-#define DIRITEM_NAME_END 0x00
+#define DIRITEM_NAEM_FREE 0x0
+// 标志该root_entry废弃
+#define DIRITEM_NAME_INVALID 0xE5
 
 #define DIRITEM_ATTR_READ_ONLY 0x1  // 此目录项对应一个只读文件
 #define DIRITEM_ATTR_HIDDEN 0x2     // 此目录项对应一个隐藏文件

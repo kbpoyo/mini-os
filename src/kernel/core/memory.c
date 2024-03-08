@@ -1,7 +1,6 @@
 #include "core/memory.h"
 
 #include "common/boot_info.h"
-#include "common/os_config.h"
 #include "core/mmu.h"
 #include "tools/bitmap.h"
 #include "tools/klib.h"
@@ -342,13 +341,15 @@ void create_kernal_table(void) {
   // 对内核的虚拟空间进行一一映射，即物理地址=虚拟地址，以预防使能mmu时的未知错误
   static memory_map_t kernal_map[] = {
       {SDRAM_INSIDE_START, SDRAM_INSIDE_START + SDRAM_INSIDE_SIZE,
-       SDRAM_INSIDE_START, PTE_AP_SYS},  // 内部4kb的空间映射关系，即0x0~0x1000
+       SDRAM_INSIDE_START,
+       PTE_AP_SYS | PTE_C},  // 内部4kb的空间映射关系，即0x0~0x1000
       {&s_text, &e_text, &s_text,
-       PTE_AP_SYS},  // 只读段的映射关系(内核.text和.rodata段)
+       PTE_AP_SYS | PTE_C},  // 只读段的映射关系(内核.text和.rodata段)
       {&s_data, (void *)MEM_EXT_START, &s_data,
-       PTE_AP_SYS},  // 可读写段的映射关系
+       PTE_AP_SYS | PTE_C},  // 可读写段的映射关系
       {(void *)MEM_EXT_START, (void *)MEM_EXT_END, (void *)MEM_EXT_START,
-       PTE_AP_SYS},  // 将sdram基地址 + 1mb以上的空间都映射给操作系统使用
+       PTE_AP_SYS |
+           PTE_C},  // 将sdram基地址 + 1mb以上的空间都映射给操作系统使用
       {(void *)MEM_UART_START, (void *)MEM_UART_END, (void *)MEM_UART_START,
        PTE_AP_SYS},  // 映射串口相关寄存器地址范围
       {(void *)MEM_IRQ_START, (void *)MEM_IRQ_END, (void *)MEM_IRQ_START,
@@ -807,12 +808,13 @@ int sys_memory_stat(char *buf, int size) {
   if (size <= (sizeof(int) * 6 * 8 + 60)) {
     return -1;
   }
+  kernel_memset(buf, 0, size);
   int mem_used = memory_used();
   int mem_free = paddr_alloc.size - mem_used;
   kernel_sprintf(buf,
                  "mem_start:\t0x%x.\nmem_size:\t%dM.\nmem_used:\t%dMB-%dKB."
-                 "\nmem_free:%dMB-%dKB.\n",
-                 paddr_alloc.start, paddr_alloc.size,
+                 "\nmem_free:\t%dMB-%dKB.\n",
+                 paddr_alloc.start, paddr_alloc.size / (1024 * 1024),
                  (mem_used / (1024 * 1024)), (mem_used % (1024 * 1024)) / 1024,
                  (mem_free / (1024 * 1024)), (mem_free % (1024 * 1024)) / 1024);
 
@@ -829,9 +831,8 @@ int memory_page_count_used(uint32_t page_dir) {
   int cnt = 0;
   // 1.获取用户程序虚拟地址的起始pde索引，即0x8000 0000 的pde索引值
   uint32_t user_pde_start = pde_index(MEM_TASK_BASE);
-  pde_t *pde = (pde_t *)page_dir;
+  pde_t *pde = (pde_t *)page_dir + user_pde_start;
 
-  // 2.遍历源页目录表中的每一个页目录项，拷贝给目标目录
   for (int i = user_pde_start; i < PDE_CNT; ++i, ++pde) {
     if (!pde->domain.flag) {  // 当前页目录项不存在
       continue;
@@ -840,7 +841,6 @@ int memory_page_count_used(uint32_t page_dir) {
     // 3.获取页目录项指向的页表的起始地址
     pte_t *pte = (pte_t *)pde_to_pt_addr(pde);
 
-    // 4.遍历页表的页表项，进行读共享写复制的映射操作
     for (int j = 0; j < PTE_CNT; ++j, ++pte) {
       if (!pte->domain.flag) {  // 当前页表项不存在
         continue;

@@ -314,6 +314,7 @@ static int do_rm(int argc, const char **argv) {
 static int do_show_task_stat(int argc, const char **argv) {
   int buf_size = 128 * 50 + 100;
   char *buf = malloc(buf_size);
+  memset(buf, 0, buf_size);
 
   int task_count = 0;
   int err = task_use_stat(buf, buf_size, &task_count);
@@ -324,9 +325,13 @@ static int do_show_task_stat(int argc, const char **argv) {
     return -1;
   }
 
+  char *temp_buf = buf;
   printf(ESC_COLOR_SHELL);
   printf("name\t\tpid\t\tppid\t\tmem\n");
-  printf(buf);
+  for (int i = 0; i < task_count; ++i) {
+    puts(temp_buf);
+    temp_buf += (strlen(temp_buf) + 1);
+  }
   printf(ESC_COLOR_DEFAULT);
 
   free(buf);
@@ -343,6 +348,7 @@ static int do_show_task_stat(int argc, const char **argv) {
 static int do_show_mem_stat(int argc, const char **argv) {
   int buf_size = 1024;
   char *buf = malloc(buf_size);
+  memset(buf, 0, buf_size);
 
   int err = memory_use_stat(buf, buf_size);
   if (err == -1) {
@@ -364,48 +370,54 @@ static int do_show_mem_stat(int argc, const char **argv) {
 static const cli_cmd_t cmd_list[] = {
     {
         .name = "help",
-        .usage = "help\t\t--list supported command",
+        .usage = "help\t\t\t\t--list supported command",
         .do_func = do_help,
     },
     {
         .name = "clear",
-        .usage = "clear\t\t--clear screen",
+        .usage = "clear\t\t\t\t--clear screen",
         .do_func = do_clear,
     },
     {
         .name = "echo",
-        .usage = "echo [-n count] msg\t\t--echo msg [count] times",
+        .usage = "echo [-n count] msg\t\t\t\t--echo msg [count] times",
         .do_func = do_echo,
     },
     {
         .name = "ls",
-        .usage = "ls\t\t--list director",
+        .usage = "ls\t\t\t\t--list director",
         .do_func = do_ls,
     },
     {
         .name = "less",
-        .usage = "less [-l] file\t\t--show file content [by line]",
+        .usage = "less [-l] file\t\t\t\t--show file content [by line]",
         .do_func = do_less,
     },
     {
         .name = "cp",
-        .usage = "cp src dest\t\t--copy file",
+        .usage = "cp src dest\t\t\t\t--copy file",
         .do_func = do_cp,
     },
     {
         .name = "rm",
-        .usage = "rm file\t\t--remove file",
+        .usage = "rm file\t\t\t\t--remove file",
         .do_func = do_rm,
     },
     {
         .name = "quit",
-        .usage = "quit\t\t--quit from shell",
+        .usage = "quit\t\t\t\t--quit from shell",
         .do_func = do_exit,
     },
     {
         .name = "task_status",
-        .usage = "task_status\t\t--show the status of task",
+        .usage = "task_status\t\t\t\t--show the status of task",
         .do_func = do_show_task_stat,
+    },
+    {
+        .name = "mem_status",
+        .usage = "mem_status\t\t\t\t--show the status of memory",
+        .do_func = do_show_mem_stat,
+
     }};
 
 /**

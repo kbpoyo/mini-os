@@ -1,12 +1,5 @@
-/**
- * 贪吃蛇游戏
- *
- * 创建时间：2022年8月5日
- * 作者：李述铜
- * 联系邮箱: 527676163@qq.com
- */
-#ifndef CMD_H
-#define CMD_H
+#ifndef SNAKE_H
+#define SNAKE_H
 
 #define ESC_CMD2(Pn, cmd) "\x1b[" #Pn #cmd
 #define ESC_CLEAR_SCREEN ESC_CMD2(2, J)  // 擦除整屏幕

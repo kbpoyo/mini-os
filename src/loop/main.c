@@ -1,10 +1,4 @@
-/**
- * 简单的命令行解释器
- *
- * 创建时间：2021年8月5日
- * 作者：李述铜
- * 联系邮箱: 527676163@qq.com
- */
+
 #include "main.h"
 
 #include <getopt.h>
@@ -14,14 +8,9 @@
 #include <sys/file.h>
 
 #include "lib_syscall.h"
-// #include "fs/file.h"
 
 int main(int argc, char** argv) {
-  // 要加上这个，不然libapp不会被加入编译链接中
-  // 这样会提示找不到一些app中的库函数
-  // yield();
-
-  // 只有一个参数，需要先手动输入，再输出
+    // 只有一个参数，需要先手动输入，再输出
   if (argc == 1) {
     char msg_buf[128];
 

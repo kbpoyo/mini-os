@@ -162,12 +162,28 @@ static inline uint32_t get_pte_privilege(pte_t *pte) {
  * @param paddr 页目录表的物理起始地址
  */
 static inline void mmu_set_page_dir(uint32_t paddr) {
-  // 设置cr2寄存器的高18位为页目录表的地址，因为按16kb对齐，所以
+  // // 清空数据cache,并使无效指令cache和数据cache
+  // disable_cache();
+  // // 设置cr2寄存器的高18位为页目录表的地址，因为按16kb对齐，所以
+  // //
   // 页目录表的起始地址page_dir的高18位才为有效位，低14位为0，将cr2的低14位就设置为0
-  cpu_cr2_write(paddr);
+  // cpu_cr2_write(paddr);
 
-  // 使整个tlb无效
-  disable_tlb();
+  // // 使整个tlb无效
+  // disable_tlb();
+
+  __asm__ __volatile__(
+      "mov r1, %[paddr]\n"
+      "mov r0, #0\n"
+      "mcr p15, 0, r0, c7, c14, 0\n"  // 清空并使无效整个数据cache
+      "mcr p15, 0, r0, c7, c5, 0\n"   // 使无效整个指令cache
+      "mcr p15, 0, r1, c2, c0, 0\n"   // 切换页目录表
+      "mcr p15, 0, r0, c8, c7, 0\n"   // ！！使无效整个TLB
+      "mcr p15, 0, r0, c7, c14, 0\n"  // 清空并使无效整个数据cache
+      "mcr p15, 0, r0, c7, c5, 0\n"   // 使无效整个指令cache
+      :
+      : [paddr] "r"(paddr)
+      : "r0", "r1");
 }
 
 void enable_mmu();

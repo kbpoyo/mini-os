@@ -86,34 +86,28 @@ _irq_handler:
     //恢复cpu上下文
     ldmfd sp!, {r0-r12,lr, pc}^
 
+_loop:
+    bl _loop
 
 _undef_handler:
     mov r0, sp;
     bl undef_handler
+    bl _loop
+   
     
-    ldmfd sp, {r0-r14}^
-    nop
-    add sp, #60
-    movs pc, lr
 
 _data_abort_handler:
 
     mov r0, sp;
     bl data_abort_handler
-    
-    ldmfd sp, {r0-r14}^
-    nop
-    add sp, #60
-    subs pc, lr, #8
+    bl _loop
+   
 
 _prefetch_abort_handler:
     mov r0, sp;
     bl prefetch_abort_handler
-    
-    ldmfd sp, {r0-r14}^
-    nop
-    add sp, #60
-    subs pc, lr, #4
+    bl _loop
+   
 
 _fiq_handler:
 
@@ -138,11 +132,17 @@ task_switch_by_sp:
     //切换栈空间
     ldr sp, [r1]    //加载目标任务的svc_sp值
 
-    //切换页目录表
-    ldr r0, [r1, #4]
-    mcr p15, 0, r0, cr2, cr0, 0
+    //读取新页目录表
+    ldr r2, [r1, #4]
     mov r0, #0
+    
+    mcr p15, 0, r0, c7, c14, 0   //清空并使无效整个数据cache
+    mcr p15, 0, r0, c7, c5, 0   //使无效整个指令cache
+    mcr p15, 0, r2, c2, c0, 0 //切换页目录表
     mcr p15, 0, r0, c8, c7, 0   //！！使无效整个TLB 
+    mcr p15, 0, r0, c7, c14, 0   //清空并使无效整个数据cache
+    mcr p15, 0, r0, c7, c5, 0   //使无效整个指令cache
+
 
 
     //恢复新任务的cpu上下文

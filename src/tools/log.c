@@ -32,7 +32,7 @@ void log_init(void) {
  */
 void log_printf(const char *formate, ...) {
   // 1.设置字符缓冲区
-  char str_buf[128];
+  char str_buf[256];
   kernel_memset(str_buf, '\0', sizeof(str_buf));
 
   // 2.获取可变参数并将其格式化到缓冲区中

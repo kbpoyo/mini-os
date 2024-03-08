@@ -1,7 +1,7 @@
 
-project(collapse LANGUAGES C)
+project(multi LANGUAGES C)  
 
-
+# 使用自定义的链接器
 # 加入相应的库
 set(LIBS_FLAGS "-L ${CMAKE_SOURCE_DIR}/newlib/arm-myos/lib -lm -lc -L /home/kbpoyo/opt/FriendlyARM/toolschain/4.4.3/lib/gcc/arm-none-linux-gnueabi/4.4.3/ -lgcc")
 set(CMAKE_EXE_LINKER_FLAGS "-T ${PROJECT_SOURCE_DIR}/link.lds ${LIBS_FLAGS}")

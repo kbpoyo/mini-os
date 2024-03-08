@@ -30,6 +30,8 @@
         "stat.h": "c",
         "main.h": "c",
         "stdlib.h": "c",
-        "fatfs.h": "c"
+        "fatfs.h": "c",
+        "sys_exception.h": "c",
+        "os_config.h": "c"
     }
 }

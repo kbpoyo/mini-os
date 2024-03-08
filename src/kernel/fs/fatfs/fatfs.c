@@ -775,20 +775,20 @@ int fatfs_open(struct _fs_t *fs, const char *path, file_t *file) {
       return -1;
     }
 
-    // 记录所遍历到的目录项的索引
-    p_index = i;
-
-    if (item->DIR_Name[0] == DIRITEM_NAME_END) {
+    if (item->DIR_Name[0] == DIRITEM_NAME_INVALID) {  // 该目录项无效
       continue;
     }
 
+    // 记录所遍历到的目录项的索引
     if (item->DIR_Name[0] == DIRITEM_NAEM_FREE) {
+      p_index = i;
       continue;
     }
 
     // 进行路径匹配
     if (diritem_name_match(item, path)) {
       file_item = item;
+      p_index = i;
       break;
     }
   }
@@ -1089,7 +1089,7 @@ int fatfs_readdir(struct _fs_t *fs, DIR *dir, struct dirent *dirent) {
 
     // 该目录项有效,获取目录项信息到dirent中
     if (item->DIR_Name[0] != DIRITEM_NAEM_FREE &&
-        item->DIR_Name[0] != DIRITEM_NAME_END) {
+        item->DIR_Name[0] != DIRITEM_NAME_INVALID) {
       file_type_t type = diritem_get_type(item);
       if ((type == FILE_NORMAL) || (type == FILE_DIR)) {
         dirent->size = item->DIR_FileSize;
@@ -1135,7 +1135,7 @@ int fatfs_unlink(struct _fs_t *fs, const char *path) {
       return -1;
     }
 
-    if (item->DIR_Name[0] == DIRITEM_NAME_END) {
+    if (item->DIR_Name[0] == DIRITEM_NAME_INVALID) {
       continue;
     }
 

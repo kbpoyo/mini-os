@@ -3,10 +3,6 @@
 #include "common/cpu_instr.h"
 #include "tools/log.h"
 
-void do_undef(void) {
-  __asm__ __volatile__(".word 0xeeadc0de\n");  // 异常指令
-}
-
 void enable_mmu() {
   uint32_t cr1 = cpu_cr1_read();
   uint32_t cr3 = cpu_cr3_read();

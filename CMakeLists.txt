@@ -50,15 +50,17 @@ include_directories(
 add_subdirectory(./src/applib)
 add_subdirectory(./src/shell)
 add_subdirectory(./src/snake)
-add_subdirectory(./src/collapse)
+add_subdirectory(./src/execpt)
 add_subdirectory(./src/loop)
 add_subdirectory(./src/kernel)
 add_subdirectory(./src/init)
+add_subdirectory(./src/multi)
 
 # # 添加编译依赖，先生成app库，再生成kernel和shell
 # # 不加则cmake则可能先编译shell和kernel，而缺少libapp，导致编译错误
-add_dependencies(collapse app)       
+add_dependencies(execpt app)       
 add_dependencies(shell app)
 add_dependencies(snake app)
+add_dependencies(multi app)
 # add_dependencies(kernel app)
 add_dependencies(loop app)

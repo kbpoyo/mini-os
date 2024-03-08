@@ -1,16 +1,5 @@
-/**
- * @file main.h
- * @author kbpoyo (kbpoyo@qq.com)
- * @brief shell程序
- * @version 0.1
- * @date 2023-07-18
- *
- * @copyright Copyright (c) 2023
- *
- */
-
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef SHELL_H
+#define SHELL_H
 
 // shell输入缓冲区的大小
 #define CLI_INPUT_SIZE 1024
