@@ -175,12 +175,8 @@ static inline void mmu_set_page_dir(uint32_t paddr) {
   __asm__ __volatile__(
       "mov r1, %[paddr]\n"
       "mov r0, #0\n"
-      "mcr p15, 0, r0, c7, c14, 0\n"  // 清空并使无效整个数据cache
-      "mcr p15, 0, r0, c7, c5, 0\n"   // 使无效整个指令cache
-      "mcr p15, 0, r1, c2, c0, 0\n"   // 切换页目录表
-      "mcr p15, 0, r0, c8, c7, 0\n"   // ！！使无效整个TLB
-      "mcr p15, 0, r0, c7, c14, 0\n"  // 清空并使无效整个数据cache
-      "mcr p15, 0, r0, c7, c5, 0\n"   // 使无效整个指令cache
+      "mcr p15, 0, r1, c2, c0, 0\n"  // 切换页目录表
+      "mcr p15, 0, r0, c8, c7, 0\n"  // ！！使无效整个TLB
       :
       : [paddr] "r"(paddr)
       : "r0", "r1");

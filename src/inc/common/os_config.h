@@ -54,7 +54,7 @@
 #define TASK_USER_STACK_SIZE (2 * 1024 * 1024)
 
 // 定义操作系统版本
-#define OS_VERSION "1.0.0"
+#define OS_VERSION "0.1"
 
 // disk类型设备的0xa1分区作为系统的根目录分区
 #define ROOT_DEV DEV_DISK, 0xa1

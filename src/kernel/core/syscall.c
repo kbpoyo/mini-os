@@ -63,8 +63,6 @@ void swi_handler(syscall_frame_t *frame) {
     sys_handler_t handler = sys_table[frame->syscall_args->id];
     if (handler) {
       // 直接将4个参数全部传入即可，
-      // 因为是按从右到左的顺序将参数压栈，所以原始的参数只要是从arg0开始赋值的即可，
-      // 多余的参数在高地址处，不影响handler对应的真正的系统调用
       int ret = handler(frame->syscall_args->arg0, frame->syscall_args->arg1,
                         frame->syscall_args->arg2, frame->syscall_args->arg3);
 

@@ -60,7 +60,7 @@ A28 = 0                                        0x01 & (page >> 16)
 1110，页地址表示对应的某一页，或者说为行地址；
 */
 
-#define TACLS 1   // tacls = TACLS * tHCLK = 0
+#define TACLS 0   // tacls = TACLS * tHCLK = 0
 #define TWRPH0 1  // twrph0 = (TWRPH0 + 1) * tHCLK = 20ns > twp = 12ns
 #define TWRPH1 \
   0  // twrph1 = (TWRPH1 + 1) * tHCLK = 10ns > max(tclh, talh) =

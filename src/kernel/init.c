@@ -102,6 +102,8 @@ int kernel_init() {
 
   cpu_irq_start();
 
+  log_printf("kbos version: " OS_VERSION "\n");
+
   move_to_first_task();
 
   while (1)

@@ -127,7 +127,7 @@ task_switch_by_sp:
     mrs r2, spsr    //保存状态备份寄存器
     push {r2}
 
-    //切换任务的irq_sp
+    //切换任务的svc_sp
     str sp, [r0]    //更新当前的任务的svc_sp值
     //切换栈空间
     ldr sp, [r1]    //加载目标任务的svc_sp值
@@ -136,12 +136,8 @@ task_switch_by_sp:
     ldr r2, [r1, #4]
     mov r0, #0
     
-    mcr p15, 0, r0, c7, c14, 0   //清空并使无效整个数据cache
-    mcr p15, 0, r0, c7, c5, 0   //使无效整个指令cache
     mcr p15, 0, r2, c2, c0, 0 //切换页目录表
     mcr p15, 0, r0, c8, c7, 0   //！！使无效整个TLB 
-    mcr p15, 0, r0, c7, c14, 0   //清空并使无效整个数据cache
-    mcr p15, 0, r0, c7, c5, 0   //使无效整个指令cache
 
 
 
