@@ -343,7 +343,7 @@ int sys_close(int fd) {
     fs_t *fs = file->fs;
     fs_protect(fs);
     fs->op->close(file);
-    fs_protect(fs);
+    fs_unprotect(fs);
 
     // 关闭文件后释放文件结构
     file_free(file);
@@ -564,6 +564,10 @@ static fs_op_t *get_fs_op(fs_type_t type, int major) {
  * @return mutex_t*
  */
 static mutex_t *get_fs_mutex(fs_type_t type) {
+  // TODO:这里给了一个统一的设备锁，但其实应该一个设备一把锁，
+  //  比如一个tty对应于一组输入输出设备，就直接给一把锁
+  // 对于FAT文件系统类型来说相当于是给磁盘设备的锁
+  // 这里设备较少，直接给设备文件系统一把锁就行了
   switch (type) {
     case FS_DEVFS:
       mutex_init(&devfs_mutex);
@@ -622,7 +626,7 @@ static fs_t *mount(fs_type_t type, const char *mount_point, int dev_major,
     log_printf("unsupported fs type: %du\n", type);
     goto mount_failed;
   }
-  // fs->mutex = mutex;
+  fs->mutex = mutex;
 
   // 4.获取该fs对象的操作函数表并交给该对象
   fs_op_t *op = get_fs_op(type, dev_major);
