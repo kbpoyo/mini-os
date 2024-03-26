@@ -11,7 +11,8 @@ set(TOOL_PREFIX "arm-linux-")
 
 # C编译器与参数配置
 set(CMAKE_C_COMPILER "${TOOL_PREFIX}gcc") 
-set(CMAKE_C_FLAGS " -O0 -Wall -fno-pie -fno-stack-protector -std=c99")
+# set(CMAKE_C_FLAGS " -O0 -Wall -fno-pie -fno-stack-protector -std=c99")
+set(CMAKE_C_FLAGS " -O0 -fno-pie -fno-stack-protector -std=c99")
 
 #-g参数用于生成调试信息，-c参数表示只编译不链接
 #-O0参数表示关闭优化，-m32参数表示生成32位代码，

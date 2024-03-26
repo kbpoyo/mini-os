@@ -625,6 +625,20 @@ static void copy_opened_files(task_t *child_task) {
     }
   }
 }
+/**
+ * @brief 将进程的打开文件表销毁
+ *
+ * @param task
+ */
+static void close_opened_files(task_t *task) {
+  for (int fd = 0; fd < TASK_OFILE_SIZE; ++fd) {
+    file_t *file = task->file_table[fd];
+    if (file) {
+      sys_close(fd);
+      task->file_table[fd] = (file_t *)0;
+    }
+  }
+}
 
 /**
  * @brief 创建子进程
@@ -694,6 +708,7 @@ fork_failed:
   if (child_task) {  // 初始化失败，释放对应资源
     task_uninit(child_task);
     free_task(child_task);
+    close_opened_files(child_task);
   }
 
   return -1;
@@ -1055,6 +1070,8 @@ int sys_wait(int *status) {
 
         // 释放任务
         task_uninit(task);
+
+        task->state = TASK_CREATED;
 
         // TODO:解锁
         mutex_unlock(&task_table_lock);

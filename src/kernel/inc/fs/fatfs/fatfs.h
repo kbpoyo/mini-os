@@ -15,9 +15,14 @@
 #include "common/types.h"
 
 // 清空簇链关系时,该簇号标志此FAT表项空闲
-#define CLUSTER_FAT_FREE 0x0
+#define FAT_CLUSTER_FREE 0x0
+// 标志该簇号为结束簇号
+#define FAT_CLUSTER_END 0x0fffffff
 // 标志该簇对应的号码无效
 #define FAT_CLUSTER_INVALID 0xfff8
+
+
+
 // 标志该root_entry是空闲的
 #define DIRITEM_NAEM_FREE 0x0
 // 标志该root_entry废弃
@@ -26,7 +31,7 @@
 #define DIRITEM_ATTR_READ_ONLY 0x1  // 此目录项对应一个只读文件
 #define DIRITEM_ATTR_HIDDEN 0x2     // 此目录项对应一个隐藏文件
 #define DIRITEM_ATTR_SYSTEM 0x4     // 此目录项对应一个系统文件
-#define DIRITEM_ATTR_VOLUME_ID 0x8
+#define DIRITEM_ATTR_VOLUME_ID 0x8  //卷标
 #define DIRITEM_ATTR_DIRECTORY 0x10  // 此目录项对应一个目录文件
 #define DIRITEM_ATTR_ARCHIVE 0x20
 #define DIRITEM_ATTR_LONG_NAME \
@@ -66,14 +71,14 @@ typedef struct _dbr_t {
   uint8_t BPB_SecPerClus;
   uint16_t BPB_RsvdSecCnt;  // 保留区中保留扇区的数目
   uint8_t BPB_NumFATs;      // FAT表项的个数，一般固定为2
-  uint16_t BPB_RootEntCnt;  // 根目录区域中的目录项个数
-  uint16_t BPB_TotSec16;    // FAT16文件系统的总扇区数
-  uint8_t BPB_Media;
-  uint16_t BPB_FATSz16;    // FAT表的总扇区数
-  uint16_t BPB_SecPerTrk;  // 忽略，CHS模式下的每磁忽略扇区数
+  uint16_t BPB_RootEntCnt;  // 根目录区域中的目录项个数，(FAT32时必须为0)
+  uint16_t BPB_TotSec16;  // FAT16文件系统的总扇区数 (FAT32时必须为0)
+  uint8_t BPB_Media;      // 忽略，媒体描述符
+  uint16_t BPB_FATSz16;    // FAT表的总扇区数 (FAT32时必须为0)
+  uint16_t BPB_SecPerTrk;  // 忽略，CHS模式下的每磁磁道扇区数
   uint16_t BPB_NumHeads;   // 忽略，CHS模式下的磁头数
   uint32_t BPB_HiddSec;    // 忽略，FAT分区之前隐藏的扇区数
-  uint32_t BPB_TotSec32;   // 忽略，FAT32的总扇区数
+  uint32_t BPB_TotSec32;   // FAT32的总扇区数
 
   // FAT配置数据区
   uint8_t BS_drvNum;    // 忽略，磁盘驱动器参数

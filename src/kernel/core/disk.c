@@ -18,11 +18,15 @@
 #include "tools/klib.h"
 #include "tools/log.h"
 
+// 外部磁盘操作函数表
+extern disk_opt_t sd_opt;
+extern disk_opt_t nand_opt;
+
 // 系统磁盘表
 static disk_t disk_table[DISK_CNT]
-    __attribute__((section(".data"), aligned(4))) = {{0}};
-// 磁盘锁
-static mutex_t mutex;
+    __attribute__((section(".data"), aligned(4))) = {
+        [0] = {.type = DISK_TYPE_NAND, .opt = &nand_opt},
+        [1] = {.type = DISK_TYPE_SD, .opt = &sd_opt}};
 
 /**
  * @brief 从磁盘disk中sector_number扇区开始读取size个扇区的数据到buf中
@@ -34,7 +38,7 @@ static mutex_t mutex;
  */
 static int disk_read_data(disk_t *disk, uint32_t sector_number, void *buf,
                           int size) {
-  return nand_read(sector_number, buf, size);
+  return disk->opt->read(disk, sector_number, buf, size);
 }
 
 /**
@@ -47,7 +51,7 @@ static int disk_read_data(disk_t *disk, uint32_t sector_number, void *buf,
  */
 static int disk_write_data(disk_t *disk, uint32_t sector_number, void *buf,
                            int size) {
-  return nand_write(sector_number, buf, size);
+  return disk->opt->write(disk, sector_number, buf, size);
 }
 
 /**
@@ -59,11 +63,13 @@ static int disk_write_data(disk_t *disk, uint32_t sector_number, void *buf,
 static int detect_part_info(disk_t *disk) {
   mbr_t mbr;
   // 读取0扇区的mbr
-  int ret = nand_read(0, &mbr, 1);
+  int ret = disk->opt->read(disk, 0, &mbr, 1);
+
   if (ret < 0) {
     log_error("read mbr failed!\n");
     return ret;
   }
+
   // 读取到disk的partinfo结构中
   part_item_t *item = mbr.part_item;
   partinfo_t *part_info = disk->partinfo + 1;
@@ -89,9 +95,11 @@ static int detect_part_info(disk_t *disk) {
  * @return int
  */
 static int identify_disk(disk_t *disk) {
-  //\保存了该磁盘的扇区总数量
-  disk->sector_count = FLASH_SECTOR_COUNT;
-  disk->sector_size = SECTOR_SIZE;
+  // 打开磁盘，获取该磁盘的的容量信息
+  if (disk->opt->open(disk) == -1) {
+    log_error("open disk failed\n");
+    return -1;
+  }
 
   // 初始化磁盘分区信息
   // 用partinfo将整个磁盘视为一个大分区
@@ -133,21 +141,12 @@ static void print_disk_info(disk_t *disk) {
  *
  */
 void disk_init(void) {
-  log_printf("disk init...\n");
-
-  // 打开nandflash
-  nand_open();
-
-  kernel_memset(disk_table, 0, sizeof(disk_table));
-
-  // 初始化磁盘锁与操作信号量
-  mutex_init(&mutex);
-
-  // 遍历并初始化化primary信道上的磁盘信息
-  for (int i = 0; i < DISK_PER_CHANNEL; ++i) {
+  // 遍历并初始化磁盘信息
+  for (int i = 0; i < DISK_CNT; ++i) {
     disk_t *disk = disk_table + i;
-    kernel_sprintf(disk->name, "sd%c", i + 'a');
-    disk->mutex = &mutex;
+    kernel_sprintf(disk->name, "sd-%c", i + 'a');
+    // 初始化磁盘锁与操作信号量
+    mutex_init(&(disk->mutex));
 
     int err = identify_disk(disk);
     if (err == 0) {
@@ -220,7 +219,7 @@ int disk_read(device_t *dev, int addr, char *buf, int size) {
   }
 
   // TODO:加锁
-  mutex_lock(disk->mutex);  // 确保磁盘io操作的原子性
+  mutex_lock(&(disk->mutex));  // 确保磁盘io操作的原子性
 
   int cnt = disk_read_data(disk, part_info->start_sector + addr, buf, size);
   if (cnt < 0) {
@@ -230,7 +229,7 @@ int disk_read(device_t *dev, int addr, char *buf, int size) {
   }
 
   // TODO:解锁
-  mutex_unlock(disk->mutex);
+  mutex_unlock(&(disk->mutex));
 
   return cnt;
 }
@@ -260,7 +259,7 @@ int disk_write(device_t *dev, int addr, char *buf, int size) {
   }
 
   // TODO:加锁
-  mutex_lock(disk->mutex);  // 确保磁盘io操作的原子性
+  mutex_lock(&(disk->mutex));  // 确保磁盘io操作的原子性
   //
   int cnt = disk_write_data(disk, part_info->start_sector + addr, buf, size);
 
@@ -271,7 +270,7 @@ int disk_write(device_t *dev, int addr, char *buf, int size) {
   }
 
   // TODO:解锁
-  mutex_unlock(disk->mutex);
+  mutex_unlock(&(disk->mutex));
 
   return cnt;
 }
@@ -286,8 +285,15 @@ int disk_write(device_t *dev, int addr, char *buf, int size) {
  * @return int
  */
 int disk_control(device_t *dev, int cmd, int arg0, int arg1) {
-  nand_control(cmd, arg0, arg1);
-  return 0;
+  // 获取要读取的分区信息
+  partinfo_t *part_info = (partinfo_t *)dev->data;
+  if (!part_info) {
+    log_printf("Get part info failed. devce: %d\n", dev->dev_index);
+    return -1;
+  }
+  disk_t *disk = part_info->disk;
+
+  return disk->opt->control(disk, cmd, arg0, arg1);
 }
 
 /**
@@ -295,7 +301,17 @@ int disk_control(device_t *dev, int cmd, int arg0, int arg1) {
  *
  * @param dev
  */
-void disk_close(device_t *dev) { nand_close(); }
+void disk_close(device_t *dev) {
+  // 获取要读取的分区信息
+  partinfo_t *part_info = (partinfo_t *)dev->data;
+  if (!part_info) {
+    log_printf("Get part info failed. devce: %d\n", dev->dev_index);
+    return -1;
+  }
+  disk_t *disk = part_info->disk;
+
+  return disk->opt->close(disk);
+}
 
 // 操作disk结构的函数表
 dev_desc_t dev_disk_desc = {.dev_name = "disk",

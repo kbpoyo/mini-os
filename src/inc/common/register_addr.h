@@ -321,4 +321,33 @@
 #define rTCNTB4 (*(volatile unsigned *)0x5100003c)  // Timer count buffer 4
 #define rTCNTO4 (*(volatile unsigned *)0x51000040)  // Timer count observation 4
 
+
+
+// SD Interface
+#define rSDICON     (*(volatile unsigned *)0x5a000000)	//SDI control
+#define rSDIPRE     (*(volatile unsigned *)0x5a000004)	//SDI baud rate prescaler
+#define rSDICARG    (*(volatile unsigned *)0x5a000008)	//SDI command argument
+#define rSDICCON    (*(volatile unsigned *)0x5a00000c)	//SDI command control
+#define rSDICSTA    (*(volatile unsigned *)0x5a000010)	//SDI command status
+#define rSDIRSP0    (*(volatile unsigned *)0x5a000014)	//SDI response 0
+#define rSDIRSP1    (*(volatile unsigned *)0x5a000018)	//SDI response 1
+#define rSDIRSP2    (*(volatile unsigned *)0x5a00001c)	//SDI response 2
+#define rSDIRSP3    (*(volatile unsigned *)0x5a000020)	//SDI response 3
+#define rSDIDTIMER  (*(volatile unsigned *)0x5a000024)	//SDI data/busy timer
+#define rSDIBSIZE   (*(volatile unsigned *)0x5a000028)	//SDI block size
+#define rSDIDCON    (*(volatile unsigned *)0x5a00002c)	//SDI data control
+#define rSDIDCNT    (*(volatile unsigned *)0x5a000030)	//SDI data remain counter
+#define rSDIDSTA    (*(volatile unsigned *)0x5a000034)	//SDI data status
+#define rSDIFSTA    (*(volatile unsigned *)0x5a000038)	//SDI FIFO status
+#define rSDIIMSK    (*(volatile unsigned *)0x5a00003c)	//SDI interrupt mask. edited for 2440A
+
+#ifdef __BIG_ENDIAN  /* edited for 2440A */
+#define rSDIDAT    (*(volatile unsigned *)0x5a00004c)	//SDI data
+#define SDIDAT     0x5a00004c  
+#else  // Little Endian
+#define rSDIDAT    (*(volatile unsigned *)0x5a000040)	//SDI data 
+#define rSDIDAT8    (*(volatile unsigned char *)0x5a000040)	//SDI data 
+#define SDIDAT     0x5a000040  
+#endif   //SD Interface
+
 #endif

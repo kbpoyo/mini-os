@@ -32,6 +32,8 @@
         "stdlib.h": "c",
         "fatfs.h": "c",
         "sys_exception.h": "c",
-        "os_config.h": "c"
+        "os_config.h": "c",
+        "register_addr.h": "c",
+        "sdi.h": "c"
     }
 }

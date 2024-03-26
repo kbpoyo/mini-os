@@ -1,5 +1,10 @@
-r
-loadbin ../bin/kernel.bin 0x30000000
+usb 0       //连接到usb
+si 0        //切换到jtag模式（swd模式为1）
+speed 4000  //速度为4000hz
+device S3C2440A //检测设备
+jtagconf -1,-1  //自动检测jtagconf
+h           //停机
+loadbin ../bin/kernel.bin 0x30000000  //下载bin文件
 //loadbin ../bin/disk.bin 0x30200000
 
 //quit

@@ -71,17 +71,40 @@ typedef struct _partinfo_t {
   int total_sectors;  // 分区所拥有的扇区数量
 } partinfo_t;
 
+
+//定义磁盘类型
+typedef enum {
+  DISK_TYPE_UNKNOWN = 0,
+  DISK_TYPE_NAND,  // NAND FLASH
+  DISK_TYPE_SD,    // SD卡
+} disk_type_t;
+
 // 磁盘结构体，描述磁盘信息
 typedef struct _disk_t {
   char name[DISK_NAME_SIZE];
+
+  disk_type_t type;  // 磁盘类型
+  struct _disk_opt_t *opt;   // 磁盘操作函数指针
 
   int sector_size;                             // 扇区大小
   int sector_count;                            // 扇区数量
   partinfo_t partinfo[DISK_PRIMARY_PART_CNT];  // 分区结构数组
 
-  mutex_t *mutex;  // 磁盘互斥锁，确保磁盘io操作的原子性
-  sem_t *op_sem;  // 磁盘操作信号量，等待磁盘数据就绪，节省磁盘io时间
+  mutex_t mutex;  // 磁盘互斥锁，确保磁盘io操作的原子性
+  // sem_t *op_sem;  // 磁盘操作信号量，等待磁盘数据就绪，节省磁盘io时间
 } disk_t;
+
+// 磁盘操作结构体
+typedef struct _disk_opt_t {
+  int (*open)(disk_t *disk);  // 打开磁盘
+  void (*close)(disk_t *disk);  // 关闭磁盘
+  int (*read)(disk_t *disk, uint32_t sector_addr, char *buf, int size);  // 读取磁盘
+  int (*write)(disk_t *disk, uint32_t sector_addr, char *buf, int size);  // 写入磁盘
+  int (*control)(disk_t *disk, int cmd, int arg0, int arg1);  // 控制磁盘
+}disk_opt_t;
+
+
+
 
 void disk_init(void);
 

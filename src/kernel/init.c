@@ -11,6 +11,7 @@
 #include "fs/fs.h"
 #include "tools/klib.h"
 #include "tools/log.h"
+#include "dev/sd.h"
 
 void delay(uint32_t ms) {
   for (uint32_t i = 0; i < ms; i++) {
@@ -42,19 +43,21 @@ void task_test_2(void) {
 
 void write_fs_nand() {
   char* buff = (char*)0x30200000;
-  int sector_count = 32 * 1024 * 1024 / 512;
 
-  nand_open();
+  int sector_count = 64 * 1024 * 1024 / 512;
 
-  for (int i = 0; i < sector_count; ++i) {
-    int ret = nand_write(i, buff, 1);
-    buff += 512;
-    if (i % 256 == 0) {
-      log_printf("write block: %d\n", i / 256);
-    }
+  int write_count = 64 * 4;
+
+  disk_t *disk;
+  nand_open(disk);
+
+  for (int i = 0; i < sector_count; i += write_count) {
+    int ret = nand_write(disk, i, buff, write_count);
+    buff += 512 * write_count;
+    log_printf("write block: %d\n", i);
   }
 
-  nand_close();
+  nand_close(disk);
 }
 
 /**

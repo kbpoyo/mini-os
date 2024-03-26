@@ -661,6 +661,7 @@ mount_failed:
  *
  */
 void fs_init(void) {
+  log_printf("fs init...\n");
   mount_list_init();
   file_table_init();
 
@@ -671,4 +672,5 @@ void fs_init(void) {
 
   root_fs = mount(FS_FAT16, "/home", ROOT_DEV);
   ASSERT(root_fs != (fs_t *)0);
+  log_printf("fs init success...\n");
 }

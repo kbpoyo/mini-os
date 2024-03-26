@@ -11,6 +11,11 @@ void gpio_init() {
   // 设置将三个串口的TXD和RXD引脚
   rGPHCON = rGPHCON_INIT;
 
+  
+  //设置sd卡的引脚
+  rGPEUP = 0xf83f;       
+  rGPECON = 0xaaaaaaaa;  
+
   // 将外部中断全设置为下降沿触发
   rEXTINT0 = rEXTINT_INIT;
   rEXTINT1 = rEXTINT_INIT;

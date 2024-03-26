@@ -514,8 +514,12 @@ static int param_is_ok(int addr, char *buf, int size) {
   return 0;
 }
 
-int nand_open() {
+
+int nand_open(disk_t *disk) {
   nand_flash_init();
+
+  disk->sector_count = FLASH_SECTOR_COUNT;
+  disk->sector_size = FLASH_SECTOR_SIZE;
 
   return 0;
 }
@@ -528,7 +532,7 @@ int nand_open() {
  * @param size 读取扇区数
  * @return * int
  */
-int nand_read(int addr, char *buf, int size) {
+int nand_read(disk_t *disk, int addr, char *buf, int size) {
   if (param_is_ok(addr, buf, size) == -1) {
     return -1;
   }
@@ -593,7 +597,7 @@ int nand_read(int addr, char *buf, int size) {
  * @param size 页数量
  * @return int
  */
-int nand_write(int addr, char *buf, int size) {
+int nand_write(disk_t *disk, int addr, char *buf, int size) {
   if (param_is_ok(addr, buf, size) == -1) {
     return -1;
   }
@@ -662,7 +666,7 @@ int nand_write(int addr, char *buf, int size) {
  * @param arg1
  * @return int
  */
-int nand_control(int cmd, int arg0, int arg1) {
+int nand_control(disk_t *disk, int cmd, int arg0, int arg1) {
   switch (cmd) {
     case NF_CMD_WRITE_BACK:
       nand_write_buff_to_block();
@@ -679,4 +683,14 @@ int nand_control(int cmd, int arg0, int arg1) {
  *
  * @param dev
  */
-void nand_close() { nand_write_buff_to_block(); }
+void nand_close(disk_t *disk) { nand_write_buff_to_block(); }
+
+// 操作disk结构的函数表
+disk_opt_t nand_opt = {
+  .open = nand_open,
+  .close = nand_close,
+  .read = nand_read,
+  .write = nand_write,
+  .control = nand_control,
+};
+

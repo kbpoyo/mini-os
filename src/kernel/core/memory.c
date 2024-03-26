@@ -13,30 +13,12 @@ static boot_info_t boot_info = {
     .ram_region_count = 1};
 
 // 定义全局内存页分配对象
-static addr_alloc_t paddr_alloc;
+static addr_alloc_t paddr_alloc __attribute__((section(".data"), aligned(4)));
 
 // 声明页目录表结构，并且使该页目录的起始地址按页大小对齐
 // 页目录项的高12位为页表的物理地址位，及4096个子页表
 static pde_t kernel_page_dir[PDE_CNT]
     __attribute__((aligned(FIRST_LEVEL_PAGE_TABLE_ALIGN)));
-
-/**
- * @brief 打印位图布局
- *
- */
-void memory_show_bitmap() {
-  int line_num = 20;
-  int line_count = paddr_alloc.bitmap.bit_count / (line_num * 8);
-
-  log_printf("========== bitmap ==========\n");
-  for (int i = 0; i < line_count; ++i) {
-    for (int j = 0; j < line_num; ++j) {
-      log_printf("%b", paddr_alloc.bitmap.bits[i * line_num + j]);
-    }
-  }
-
-  log_printf("========== bitmap ==========\n");
-}
 
 /**
  * @brief 获取页的索引
@@ -49,6 +31,21 @@ static inline int page_index(addr_alloc_t *alloc, uint32_t page_addr) {
 }
 
 /**
+ * @brief 检测页索引是否越界
+ *
+ * @param alloc
+ * @param index
+ * @return int
+ */
+static inline int page_index_err(addr_alloc_t *alloc, int index) {
+  if (index < 0 || index >= alloc->size / alloc->page_size) {
+    return 1;
+  }
+
+  return 0;
+}
+
+/**
  * @brief 为页的引用计数+1
  *
  * @param alloc
@@ -57,6 +54,10 @@ static inline int page_index(addr_alloc_t *alloc, uint32_t page_addr) {
 static inline void page_ref_add(addr_alloc_t *alloc, uint32_t page_addr) {
   // 计算出页的索引
   int index = page_index(alloc, page_addr);
+
+  if (page_index_err(alloc, index)) {  // 索引超范围
+    return 0;
+  }
 
   mutex_lock(&alloc->mutex);
   // 引用计数+1
@@ -75,6 +76,10 @@ static inline void page_ref_sub(addr_alloc_t *alloc, uint32_t page_addr) {
   // 计算出页的索引
   int index = page_index(alloc, page_addr);
 
+  if (page_index_err(alloc, index)) {  // 索引超范围
+    return 0;
+  }
+
   mutex_lock(&alloc->mutex);
   // 引用计数-1
   if (alloc->page_ref[index] > 0) alloc->page_ref[index]--;
@@ -91,6 +96,10 @@ static inline void page_ref_sub(addr_alloc_t *alloc, uint32_t page_addr) {
 static inline int get_page_ref(addr_alloc_t *alloc, uint32_t page_addr) {
   // 计算出页的索引
   int index = page_index(alloc, page_addr);
+
+  if (page_index_err(alloc, index)) {  // 索引超范围
+    return 0;
+  }
 
   mutex_lock(&alloc->mutex);
 
@@ -360,7 +369,9 @@ void create_kernal_table(void) {
        PTE_AP_SYS},  // 映射gpio相关寄存器地址范围
       {(void *)MEM_NADNFLASH_START, (void *)MEM_NANDFLASH_END,
        (void *)MEM_NADNFLASH_START,
-       PTE_AP_SYS}  // 映射nandflash相关寄存器地址范围
+       PTE_AP_SYS},  // 映射nandflash相关寄存器地址范围
+      {(void *)MEM_SD_START, (void *)MEM_SD_END, (void *)MEM_SD_START,
+       PTE_AP_SYS}  // 映射SD控制器相关寄存器组
   };
 
   // memory_show_bitmap();
@@ -383,11 +394,11 @@ void create_kernal_table(void) {
     // 创建内存映射关系
     memory_creat_map(kernel_page_dir, vstart, pstart, page_count,
                      map->access_perim);
-    // 清空内核空间对页的引用
-    clear_page_ref(&paddr_alloc);
   }
 
-  // memory_show_bitmap();
+  // 清空内核空间对页的引用
+  clear_page_ref(&paddr_alloc);
+
 }
 
 /**

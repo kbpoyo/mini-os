@@ -57,6 +57,6 @@
 #define OS_VERSION "0.1"
 
 // disk类型设备的0xa1分区作为系统的根目录分区
-#define ROOT_DEV DEV_DISK, 0xa1
+#define ROOT_DEV DEV_DISK, 0xb1
 
 #endif

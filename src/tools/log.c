@@ -22,6 +22,8 @@ void log_init(void) {
 
   // 打开一个tty设备用于日志打印
   log_dev_id = dev_open(DEV_TTY, 0, (void *)0);
+
+  log_printf(ESC_COLOR_DEFAULT "log_init success...\n");
 }
 
 /**

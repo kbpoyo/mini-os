@@ -328,7 +328,7 @@ void cluster_free_chain(fat_t *fat, cluster_t start) {
   // 链式清空
   while (cluster_is_valid(start)) {
     cluster_t next = cluster_get_next(fat, start);
-    cluster_set_next(fat, start, CLUSTER_FAT_FREE);
+    cluster_set_next(fat, start, FAT_CLUSTER_FREE);
     start = next;
   }
 }
@@ -351,7 +351,7 @@ static cluster_t cluster_alloc_free(fat_t *fat, int cnt) {
   for (curr = 2; cnt && (curr < c_total); ++curr) {
     cluster_t free = cluster_get_next(fat, curr);
     // 当前簇curr没有链接关系，可供分配
-    if (free == CLUSTER_FAT_FREE) {
+    if (free == FAT_CLUSTER_FREE) {
       if (!cluster_is_valid(start)) {
         // 链头还未分配，先分配链头
         start = curr;
