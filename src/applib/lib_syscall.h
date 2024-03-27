@@ -40,9 +40,12 @@ void print_msg(const char *fmt, int arg);
 int getpid(void);
 void msleep(int ms);
 int _fork(void);
+int fork(void);
 int _execve(const char *name, char *const *argv, char *const *env);
+int execve(const char *name, char *const *argv, char *const *env);
 void yield(void);
 int _wait(int *status);
+int wait(int *status);
 void _exit(int status);
 
 // 提供给newlib库的系统调用

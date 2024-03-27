@@ -72,6 +72,10 @@ int _fork(void) {
   return sys_call(&args);
 }
 
+int fork(void) {
+  return _fork();
+}
+
 /**
  * @brief 加载执行外部程序
  *
@@ -89,6 +93,10 @@ int _execve(const char *name, char *const *argv, char *const *env) {
   args.arg2 = (uint32_t)env;
 
   return sys_call(&args);
+}
+
+int execve(const char *name, char *const *argv, char *const *env) {
+  return _execve(name, argv, env);
 }
 
 /**
@@ -269,6 +277,8 @@ int _wait(int *status) {
 
   return sys_call(&args);
 }
+
+int wait(int *status) { return _wait(status); }
 
 /**
  * @brief 打开一个目录

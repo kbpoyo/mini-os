@@ -398,7 +398,6 @@ void create_kernal_table(void) {
 
   // 清空内核空间对页的引用
   clear_page_ref(&paddr_alloc);
-
 }
 
 /**
@@ -489,7 +488,6 @@ static pde_t *curr_page_dir() {
  */
 void memory_free_page(uint32_t addr, int page_count) {
   for (int i = 0; i < page_count; ++i) {
-    addr += i * MEM_PAGE_SIZE;
     if (addr < MEM_TASK_BASE) {  // 释放内核空间的一页内存
       addr_free_page(
           &paddr_alloc, addr,
@@ -497,6 +495,9 @@ void memory_free_page(uint32_t addr, int page_count) {
     } else {   // 释放用户空间的一页内存
       // 1.用虚拟地址找到该页对应的页表项
       pte_t *pte = find_pte(curr_page_dir(), addr, 0);
+      if (pte == (pte_t *)0 || pte->domain.flag == 0) {  // 未找到对应的页表项
+        log_error("free page failed. no pte i =%d\n", i);
+      }
       ASSERT(pte != (pte_t *)0 && pte->domain.flag);
 
       // 2.用该页的物理地址释放该页
@@ -505,6 +506,8 @@ void memory_free_page(uint32_t addr, int page_count) {
       // 3.将页表项清空，解除映射关系
       pte->v = 0;
     }
+
+    addr += MEM_PAGE_SIZE;
   }
 }
 
@@ -531,7 +534,7 @@ int memory_alloc_for_page_dir(uint32_t page_dir, uint32_t vaddr,
     if (paddr == 0) {  // 分配失败
       log_error("mem alloc failed. no memory\n");
       // TODO:当分配失败时应该将之前分配的页全部归还，且将映射关系也全部解除
-      return 0;
+      return -1;
     }
 
     int err =
@@ -539,10 +542,14 @@ int memory_alloc_for_page_dir(uint32_t page_dir, uint32_t vaddr,
     if (err < 0) {  // 分配失败
       log_error("create memory failed. err = %d\n", err);
       // TODO:当分配失败时应该将之前分配的页全部归还，且将映射关系也全部解除
-      return 0;
+      return -1;
     }
 
     curr_vaddr += MEM_PAGE_SIZE;
+
+    if (i == 955) {
+      int a = 0;
+    }
   }
 
   return 0;
@@ -751,47 +758,71 @@ int memory_copy_uvm_data(uint32_t to_vaddr, uint32_t to_page_dir,
  * @return char*
  */
 char *sys_sbrk(int incr) {
-  ASSERT(incr >= 0);  // 只处理堆区内存增加的情况
   task_t *task = task_current();
   char *pre_heap_end = (char *)task->heap_end;
-  int pre_incr = incr;
 
   if (incr == 0) {
-    // log_printf("sbrk(0): end=0x%x\n", pre_heap_end);
     return pre_heap_end;
   }
 
-  uint32_t start = task->heap_end;  // 堆区原始末尾位置
-  uint32_t end = start + incr;      // 需要拓展到的末尾位置
-
-  uint32_t start_offset =
-      start % MEM_PAGE_SIZE;  // 获取末尾位置在当前页内的偏移量
-  if (start_offset) {         // 先将当前页的剩余空间分配出去
-    if (start_offset + incr <= MEM_PAGE_SIZE) {  // 当前页剩余内存可供分配
-      task->heap_end = end;
-      incr = 0;
-    } else {  // 当前页剩余内存不够分配
-      uint32_t curr_size = MEM_PAGE_SIZE - start_offset;  // 获取当前页剩余大小
-      // 将当前页剩余内存全部分配出
-      start += curr_size;
-      incr -= curr_size;
+  if (incr > 0) {
+    uint32_t start = task->heap_end;  // 堆区原始末尾位置
+    uint32_t after_heap_end = start + incr;      // 需要拓展到的末尾位置
+    uint32_t start_offset =
+        start % MEM_PAGE_SIZE;  // 获取末尾位置在当前页内的偏移量
+    if (start_offset) {         // 先将当前页的剩余空间分配出去
+      if (start_offset + incr <= MEM_PAGE_SIZE) {  // 当前页剩余内存可供分配
+        task->heap_end = after_heap_end;
+        incr = 0;
+      } else {  // 当前页剩余内存不够分配
+        uint32_t curr_size =
+            MEM_PAGE_SIZE - start_offset;  // 获取当前页剩余大小
+        // 将当前页剩余内存全部分配出
+        start += curr_size;
+        incr -= curr_size;
+      }
     }
+
+    if (incr) {                          // 还需要继续拓展
+      uint32_t curr_size = after_heap_end - start;  // 还需拓展的大小
+      int err = memory_alloc_page_for(
+          start, curr_size, PTE_FLAG | PTE_AP_USR);  // 为该部分内存创建映射关系
+      if (err < 0) {
+        log_error("sbrk: alloc mem failed.\n");
+        return (char *)-1;
+      }
+    }
+
+    task->heap_end = after_heap_end;
+    return (char *)pre_heap_end;
   }
 
-  if (incr) {                          // 还需要继续拓展
-    uint32_t curr_size = end - start;  // 还需拓展的大小
-    int err = memory_alloc_page_for(
-        start, curr_size, PTE_FLAG | PTE_AP_USR);  // 为该部分内存创建映射关系
-    if (err < 0) {
-      log_printf("sbrk: alloc mem failed.\n");
-      return (char *)-1;
+  //释放分配的内存
+  if (incr < 0) {
+    incr = 0 - incr;
+    uint32_t offset = task->heap_end % MEM_PAGE_SIZE;
+    uint32_t after_heap_end = task->heap_end - incr;
+    
+    if (offset) {
+      if (offset - incr > 0) {  // 不需要释放页
+        task->heap_end = after_heap_end;
+        return after_heap_end;
+      } else {
+        incr -= offset;
+      }
     }
+
+    if (incr >= 0) {
+      uint32_t align_heap_end = up2(after_heap_end, MEM_PAGE_SIZE);  // 向上对齐
+
+      memory_free_page(
+          align_heap_end,
+          up2(task->heap_end - align_heap_end, MEM_PAGE_SIZE) / MEM_PAGE_SIZE);
+
+      task->heap_end = after_heap_end;
+    }
+    return (char *)after_heap_end;
   }
-
-  // log_printf("sbrk(%d): end=0x%x\n", pre_incr, end);
-  task->heap_end = end;
-
-  return (char *)pre_heap_end;
 }
 
 /**

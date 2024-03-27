@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.0.0)
 # 保存一些通用的配置
 set(CMAKE_VERBOSE_MAKEFILE on)   # 开启输出编译详细过程的提示
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   #生成编译命令json文件
+set(CMAKE_BUILD_TYPE "Debug")
 
 # gcc工具链前缀，根据实际情况做不同的设置
 set(TOOL_PREFIX "arm-linux-")
@@ -12,7 +13,7 @@ set(TOOL_PREFIX "arm-linux-")
 # C编译器与参数配置
 set(CMAKE_C_COMPILER "${TOOL_PREFIX}gcc") 
 # set(CMAKE_C_FLAGS " -O0 -Wall -fno-pie -fno-stack-protector -std=c99")
-set(CMAKE_C_FLAGS " -O0 -fno-pie -fno-stack-protector -std=c99")
+set(CMAKE_C_FLAGS " -O0 -fno-pie -fno-stack-protector -std=c99 -g")
 
 #-g参数用于生成调试信息，-c参数表示只编译不链接
 #-O0参数表示关闭优化，-m32参数表示生成32位代码，
@@ -56,6 +57,7 @@ add_subdirectory(./src/loop)
 add_subdirectory(./src/kernel)
 add_subdirectory(./src/init)
 add_subdirectory(./src/multi)
+add_subdirectory(./src/os_test)
 
 # # 添加编译依赖，先生成app库，再生成kernel和shell
 # # 不加则cmake则可能先编译shell和kernel，而缺少libapp，导致编译错误
@@ -65,3 +67,4 @@ add_dependencies(snake app)
 add_dependencies(multi app)
 # add_dependencies(kernel app)
 add_dependencies(loop app)
+add_dependencies(os_test app)

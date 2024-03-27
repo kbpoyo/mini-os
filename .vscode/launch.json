@@ -39,7 +39,7 @@
                 {
                     "description": "加载kernel符号文件",
                     "text": "add-symbol-file ./build/src/kernel/kernel.elf 0x30000000",
-                    "ignoreFailures": false
+                    // "ignoreFailures": false
                 },
                 // {
                 //     "description": "加载shell符号文件",
