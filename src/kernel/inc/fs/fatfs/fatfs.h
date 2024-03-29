@@ -19,7 +19,9 @@
 // 标志该簇号为结束簇号
 #define FAT_CLUSTER_END 0x0fffffff
 // 标志该簇对应的号码无效
-#define FAT_CLUSTER_INVALID 0xfff8
+#define FAT_CLUSTER_INVALID 0x0ffffff8
+//定义FAT数据区的起始簇号
+#define FAT_CLUSTER_DAT_START 0x2
 
 
 
@@ -59,7 +61,7 @@ typedef struct _diritem_t {
 } diritem_t;
 
 // dbr区域结构，存储了fat16文件系统的配置信息
-typedef struct _dbr_t {
+typedef struct _dbr16_t {
   // 跳转代码 区域
   uint8_t BS_jmpBoot[3];  // 忽略，3字节的跳转代码
   uint8_t BS_OEMName[8];  // 忽略，8字节的操作系统名称
@@ -74,7 +76,7 @@ typedef struct _dbr_t {
   uint16_t BPB_RootEntCnt;  // 根目录区域中的目录项个数，(FAT32时必须为0)
   uint16_t BPB_TotSec16;  // FAT16文件系统的总扇区数 (FAT32时必须为0)
   uint8_t BPB_Media;      // 忽略，媒体描述符
-  uint16_t BPB_FATSz16;    // FAT表的总扇区数 (FAT32时必须为0)
+  uint16_t BPB_FATSz16;    // FAT16时FAT表的总扇区数 (FAT32时必须为0)
   uint16_t BPB_SecPerTrk;  // 忽略，CHS模式下的每磁磁道扇区数
   uint16_t BPB_NumHeads;   // 忽略，CHS模式下的磁头数
   uint32_t BPB_HiddSec;    // 忽略，FAT分区之前隐藏的扇区数
@@ -90,7 +92,52 @@ typedef struct _dbr_t {
   // 但并不是用来确定文件系统类型的
   uint8_t BS_FilSysType[8];
 
-} dbr_t;
+} dbr16_t;
+
+// dbr区域结构，存储了fat16文件系统的配置信息
+typedef struct _dbr32_t {
+  // 跳转代码 区域
+  uint8_t BS_jmpBoot[3];  // 忽略，3字节的跳转代码
+  uint8_t BS_OEMName[8];  // 忽略，8字节的操作系统名称
+
+  // BISO Parameter block 区域
+  uint16_t BPB_BytsPerSec;  // 每扇区字节数
+  // 每簇的扇区数，fat系统会以簇为单位存储文件
+  // 一簇为2的n次方个扇区
+  uint8_t BPB_SecPerClus;
+  uint16_t BPB_RsvdSecCnt;  // 保留区中保留扇区的数目
+  uint8_t BPB_NumFATs;      // FAT表项的个数，一般固定为2
+
+  //包含fat16相关信息
+  uint16_t BPB_RootEntCnt;  // FAT16根目录区域中的目录项个数，(FAT32时必须为0)
+  uint16_t BPB_TotSec16;  // FAT16文件系统的总扇区数 (FAT32时必须为0)
+  uint8_t BPB_Media;      // 忽略，媒体描述符
+  uint16_t BPB_FATSz16;    // FAT16时FAT表的总扇区数 (FAT32时必须为0)
+  uint16_t BPB_SecPerTrk;  // 忽略，CHS模式下的每磁磁道扇区数
+  uint16_t BPB_NumHeads;   // 忽略，CHS模式下的磁头数
+  uint32_t BPB_HiddSec;    // 忽略，FAT分区之前隐藏的扇区数
+
+  //fat32特有的信息
+  uint32_t BPB_TotSec32;   // FAT32的总扇区数
+  uint32_t BPB_FATSz32; //FAT32时FAT表占用的总扇区数
+  uint16_t BPB_Extended_Flag; //拓展标志(FAT32)
+  uint16_t BPB_FILE_SYS_VERSION;  //文件系统版本(FAT32)
+  uint32_t BPB_Root_CluNumber;  //根目录簇号(FAT32)
+  uint16_t BPB_FILE_SYS_INFO_SEC; //文件系统信息扇区号(FAT32)
+  uint16_t BPB_BACK_BOOT_SEC; //备份引导扇区(FAT32)
+  uint8_t BPB_Reserve[12];  //保留(FAT32)
+
+  // FAT配置数据区
+  uint8_t BS_drvNum;    // 忽略，磁盘驱动器参数
+  uint8_t BS_Reserved;  // 忽略，保留
+  uint8_t BS_BootSig;  // 忽略，拓展引导标记，用于指明此后的三个区域可用
+  uint32_t BS_VollD;      // 忽略，卷标序号
+  uint8_t BS_VolLab[11];  // 忽略，磁盘卷标
+  // 忽略，存放"FAT16" "FAT12" "FAT32" "NOTE"
+  // 但并不是用来确定文件系统类型的
+  uint8_t BS_FilSysType[8];
+
+} dbr32_t;
 
 #pragma pack()
 
@@ -114,7 +161,7 @@ typedef struct _fat_t {
 
 } fat_t;
 
-typedef uint16_t cluster_t;
+typedef uint32_t cluster_t;
 
 typedef struct _fat_buff_t {
   cluster_t *table;

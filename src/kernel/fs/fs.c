@@ -547,13 +547,12 @@ static fs_op_t *get_fs_op(fs_type_t type, int major) {
   switch (type) {
     case FS_DEVFS:
       return &devfs_op;
-      break;
     case FS_FAT16:
       return &fatfs_op;
-      break;
+    case FS_FAT32:
+      return &fatfs_op;
     default:
       return 0;
-      break;
   }
 }
 
@@ -572,14 +571,14 @@ static mutex_t *get_fs_mutex(fs_type_t type) {
     case FS_DEVFS:
       mutex_init(&devfs_mutex);
       return &devfs_mutex;
-      break;
     case FS_FAT16:
       mutex_init(&fatfs_mutex);
       return &fatfs_mutex;
-      break;
+    case FS_FAT32:
+      mutex_init(&fatfs_mutex);
+      return &fatfs_mutex;
     default:
       return 0;
-      break;
   }
 }
 
@@ -670,7 +669,7 @@ void fs_init(void) {
   fs_t *fs = mount(FS_DEVFS, "/dev", 0, 0);
   ASSERT(fs != (fs_t *)0);
 
-  root_fs = mount(FS_FAT16, "/home", ROOT_DEV);
+  root_fs = mount(FS_FAT32, "/home", ROOT_DEV);
   ASSERT(root_fs != (fs_t *)0);
   log_printf("fs init success...\n");
 }
